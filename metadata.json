@@ -1,0 +1,6 @@
+{
+  "name": "FarmTap",
+  "description": "Pastoral 2D farm simulation and live commodity market progressive web app. Plant, grow, harvest crops and trade on fluctuating market trends.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

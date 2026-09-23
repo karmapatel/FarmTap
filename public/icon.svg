@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="skyGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#4ade80" />
+      <stop offset="60%" stop-color="#15803d" />
+      <stop offset="100%" stop-color="#052e16" />
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#skyGrad)" />
+  <circle cx="256" cy="256" r="210" fill="none" stroke="url(#goldGrad)" stroke-width="12" opacity="0.8" />
+  
+  <!-- Barn Silhouette -->
+  <polygon points="170,220 256,150 342,220" fill="#dc2626" stroke="#991b1b" stroke-width="6" />
+  <rect x="185" y="220" width="142" height="110" fill="#b91c1c" stroke="#7f1d1d" stroke-width="6" />
+  <line x1="195" y1="225" x2="317" y2="325" stroke="#fef3c7" stroke-width="6" opacity="0.7" />
+  <line x1="317" y1="225" x2="195" y2="325" stroke="#fef3c7" stroke-width="6" opacity="0.7" />
+  <rect x="226" y="260" width="60" height="70" fill="#451a03" />
+
+  <!-- Golden Wheat Stalk in Foreground -->
+  <g transform="translate(256, 320)">
+    <path d="M0,0 Q-15,-60 0,-130" stroke="#f59e0b" stroke-width="10" fill="none" stroke-linecap="round" />
+    <!-- Wheat ears -->
+    <ellipse cx="-20" cy="-60" rx="22" ry="10" transform="rotate(-30 -20 -60)" fill="url(#goldGrad)" />
+    <ellipse cx="20" cy="-75" rx="22" ry="10" transform="rotate(30 20 -75)" fill="url(#goldGrad)" />
+    <ellipse cx="-20" cy="-95" rx="20" ry="9" transform="rotate(-30 -20 -95)" fill="url(#goldGrad)" />
+    <ellipse cx="20" cy="-110" rx="20" ry="9" transform="rotate(30 20 -110)" fill="url(#goldGrad)" />
+    <ellipse cx="0" cy="-135" rx="12" ry="24" fill="url(#goldGrad)" />
+  </g>
+  
+  <!-- Ticker Sparkline Arrow Accent -->
+  <polyline points="70,410 160,370 240,390 340,320 440,250" fill="none" stroke="#22c55e" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+  <polygon points="440,230 440,270 470,240" fill="#22c55e" />
+</svg>

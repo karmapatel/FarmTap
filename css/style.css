@@ -1,0 +1,221 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;700;800&family=Fredoka:wght@400;500;600;700&family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import "tailwindcss";
+
+* {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Fredoka', cursive, sans-serif;
+  overflow: hidden;
+  background: #1c3516;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+.font-pixel {
+  font-family: 'Press Start 2P', monospace;
+}
+
+.font-brand {
+  font-family: 'Bricolage Grotesque', sans-serif;
+}
+
+.font-body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Game Viewport Container */
+#gameViewport {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #46792b;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive Farm World Stage Container */
+#worldStageContainer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+/* Responsive Farm World Stage (Canonical 500x680 space) */
+#worldStage {
+  position: relative;
+  width: 500px;
+  height: 680px;
+  transform-origin: center center;
+  transform: scale(var(--stage-scale, 1));
+  will-change: transform;
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+/* Safe area insets for mobile screens with notches and home bars */
+.safe-top {
+  padding-top: max(8px, env(safe-area-inset-top, 8px));
+}
+
+.safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+}
+
+/* Weather Overlays */
+.rain-drop {
+  position: absolute;
+  background: linear-gradient(transparent, rgba(190, 230, 255, 0.9));
+  width: 2px;
+  height: 20px;
+  animation: rainFall 0.4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rainFall {
+  0% { transform: translateY(-30px) translateX(0); opacity: 1; }
+  100% { transform: translateY(100vh) translateX(-20px); opacity: 0.2; }
+}
+
+/* Floating feedback */
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(0.9); opacity: 1; }
+  50% { transform: translateY(-28px) scale(1.1); opacity: 1; }
+  100% { transform: translateY(-48px) scale(0.95); opacity: 0; }
+}
+
+.float-feedback {
+  animation: floatUp 1.2s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+  pointer-events: none;
+}
+
+/* Sprite animations */
+@keyframes bobble {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-3px) rotate(-3deg); }
+  75% { transform: translateY(-2px) rotate(3deg); }
+}
+
+.walking-anim {
+  animation: bobble 0.22s infinite ease-in-out;
+}
+
+@keyframes windSway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(4deg) skewX(2deg); }
+}
+
+.wind-sway {
+  transform-origin: bottom center;
+  animation: windSway 3s ease-in-out infinite;
+}
+
+@keyframes chimneyPuff {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 0.8; }
+  50% { transform: translate(-8px, -24px) scale(1.2); opacity: 0.6; }
+  100% { transform: translate(-18px, -52px) scale(1.8); opacity: 0; }
+}
+
+.smoke-puff {
+  animation: chimneyPuff 2.4s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+}
+
+/* Pulse selection */
+@keyframes pulseRing {
+  0% { transform: scale(0.95); opacity: 0.9; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+.pulse-ring {
+  animation: pulseRing 1.4s ease-out infinite;
+}
+
+/* Modals */
+.game-modal {
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.game-modal.hidden-modal {
+  opacity: 0;
+  transform: scale(0.88) translateY(20px);
+  pointer-events: none;
+}
+
+/* High-Performance Smooth Marquee for Ticker Tape */
+@keyframes marqueeScroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee,
+.ticker-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: marqueeScroll 32s linear infinite;
+}
+
+.animate-marquee:hover,
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+.ticker-content {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Tactile 3D Button Push effect */
+.btn-tactile {
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.btn-tactile:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.6);
+  border-radius: 4px;
+}
+
+/* Crop growth progress bar transition */
+.crop-prog-bar {
+  transition: width 0.95s linear;
+}
+

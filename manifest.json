@@ -1,0 +1,39 @@
+{
+  "id": "/",
+  "name": "FarmTap",
+  "short_name": "FarmTap",
+  "description": "Pastoral 2D farm simulation and live commodity market progressive web app. Plant, grow, harvest crops and trade on fluctuating market trends.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1c3516",
+  "theme_color": "#1c3516",
+  "categories": ["games", "simulation"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
