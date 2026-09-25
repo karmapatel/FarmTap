@@ -199,6 +199,10 @@ export const storage = {
   async save(state) {
     try {
       state.inventory = sanitizeInventory(state.inventory);
+      const safeWater = (state.wellWater !== undefined && state.wellWater !== null)
+        ? Math.max(0, Math.min(100, Math.round(Number(state.wellWater))))
+        : 100;
+
       const dataToSave = {
         gold: state.gold,
         weather: state.weather,
@@ -207,6 +211,9 @@ export const storage = {
         inventory: state.inventory,
         prices: state.prices,
         costs: state.costs,
+        lastHourKey: state.lastHourKey || null,
+        wellWater: safeWater,
+        lastHourlyUpdateTimestamp: state.lastHourlyUpdateTimestamp || null,
         marketHour: state.marketHour,
         marketDay: state.marketDay,
         cycleStartTime: state.cycleStartTime,
@@ -216,6 +223,16 @@ export const storage = {
         timestamp: Date.now()
       };
       cachedState = dataToSave;
+
+      // Synchronous localStorage write for instant resilience against immediate page reloads
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem('farmtap_well_water', String(safeWater));
+          const serialized = JSON.stringify(dataToSave);
+          localStorage.setItem('ticker_tape_crops_save_v2', serialized);
+          localStorage.setItem('ticker_tape_crops_save_v1', serialized);
+        } catch (_) {}
+      }
       await idbSet(SAVE_KEY, dataToSave);
     } catch (e) {
       console.warn('Failed to save state to IndexedDB:', e);
@@ -227,22 +244,33 @@ export const storage = {
       // 1. Attempt to load from IndexedDB
       let saved = await idbGet(SAVE_KEY);
 
-      // 2. Migration from legacy localStorage if IndexedDB is empty
-      if (!saved && typeof localStorage !== 'undefined') {
-        const legacyKeyV2 = 'ticker_tape_crops_save_v2';
-        const legacyKeyV1 = 'ticker_tape_crops_save_v1';
-        const rawLocal = localStorage.getItem(legacyKeyV2) || localStorage.getItem(legacyKeyV1);
-        if (rawLocal) {
-          try {
-            saved = JSON.parse(rawLocal);
-            // Migrate to IndexedDB
-            await idbSet(SAVE_KEY, saved);
-            localStorage.removeItem(legacyKeyV2);
-            localStorage.removeItem(legacyKeyV1);
-            console.log('Migrated player save from localStorage to IndexedDB');
-          } catch (migErr) {
-            console.warn('Legacy migration error:', migErr);
+      // Dedicated well water check from localStorage
+      let dedicatedWellWater = null;
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const rawWater = localStorage.getItem('farmtap_well_water');
+          if (rawWater !== null && rawWater !== undefined && rawWater !== '') {
+            const num = Number(rawWater);
+            if (Number.isFinite(num)) {
+              dedicatedWellWater = Math.max(0, Math.min(100, Math.round(num)));
+            }
           }
+        } catch (_) {}
+      }
+
+      // 2. Also check synchronous localStorage backup in case of recent reload or uncompleted async write
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const rawLocal = localStorage.getItem('ticker_tape_crops_save_v2') || localStorage.getItem('ticker_tape_crops_save_v1');
+          if (rawLocal) {
+            const parsedLocal = JSON.parse(rawLocal);
+            // If localStorage is newer than IndexedDB save, prioritize localStorage
+            if (!saved || (parsedLocal && parsedLocal.timestamp && (!saved.timestamp || parsedLocal.timestamp >= saved.timestamp))) {
+              saved = parsedLocal;
+            }
+          }
+        } catch (e) {
+          console.warn('localStorage read error:', e);
         }
       }
 
@@ -290,15 +318,24 @@ export const storage = {
         // Clean and sanitize inventory so no ghost or null keys persist, and 0s are preserved
         const cleanInv = sanitizeInventory(parsed.inventory !== undefined ? parsed.inventory : defaultState.inventory);
 
-        const loadedWellWater = (parsed && parsed.wellWater !== undefined && parsed.wellWater !== null)
-          ? Math.max(0, Math.min(100, Math.round(Number(parsed.wellWater))))
-          : 100;
+        // Resilient well water resolution:
+        // 1. Dedicated localStorage key takes first priority (immune to schema/migration drops)
+        // 2. Saved/parsed wellWater takes second priority
+        // 3. Defaults to 100 only if never previously set
+        let loadedWellWater = 100;
+        if (dedicatedWellWater !== null) {
+          loadedWellWater = dedicatedWellWater;
+        } else if (parsed && parsed.wellWater !== undefined && parsed.wellWater !== null) {
+          loadedWellWater = Math.max(0, Math.min(100, Math.round(Number(parsed.wellWater))));
+        }
 
         // Deep merge with defaults so new fields are never undefined
         const mergedState = {
           ...defaultState,
           ...parsed,
           wellWater: loadedWellWater,
+          lastHourKey: parsed.lastHourKey || null,
+          lastHourlyUpdateTimestamp: parsed.lastHourlyUpdateTimestamp || null,
           inventory: cleanInv,
           prices: { ...defaultState.prices, ...(parsed.prices || {}) },
           costs: { ...defaultState.costs, ...(parsed.costs || {}) },
@@ -326,6 +363,7 @@ export const storage = {
     try {
       await idbClear();
       if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('farmtap_well_water');
         localStorage.removeItem('ticker_tape_crops_save_v2');
         localStorage.removeItem('ticker_tape_crops_save_v1');
       }

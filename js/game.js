@@ -33,7 +33,17 @@ const player = new Player('playerCharacter', 'playerSpriteInner', 'playerSpeechB
 
 // Ensure wellWater and plot moisture are present on state
 if (state.wellWater === undefined || state.wellWater === null) {
-  state.wellWater = 100;
+  let fallbackWater = 100;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('farmtap_well_water');
+      if (stored !== null && stored !== undefined && stored !== '') {
+        const num = Number(stored);
+        if (Number.isFinite(num)) fallbackWater = Math.max(0, Math.min(100, Math.round(num)));
+      }
+    } catch (_) {}
+  }
+  state.wellWater = fallbackWater;
 } else {
   state.wellWater = Math.max(0, Math.min(100, Math.round(Number(state.wellWater))));
 }
@@ -56,6 +66,7 @@ export function applyHourlyWaterCycle(gameState, hoursCount = 1) {
 
 const farm = new Farm(state.plots, player, (x, y, text, color) => ui.showFloatingText(x, y, text, color));
 const economy = new Economy(state.prices, state.costs, state.lastHourKey);
+state.lastHourKey = economy.lastHourKey;
 
 // Check if hour changed while offline/closed (using existing hourly clock)
 const nowTimestamp = Date.now();
@@ -71,8 +82,10 @@ if (economy.checkHourChange(state.activeEvent, state.weather)) {
   }
   applyHourlyWaterCycle(state, hoursPassed);
   state.lastHourlyUpdateTimestamp = nowTimestamp;
+  storage.save(state);
 } else if (!state.lastHourlyUpdateTimestamp) {
   state.lastHourlyUpdateTimestamp = nowTimestamp;
+  storage.save(state);
 }
 
 const events = new EventSystem(state.weather, state.activeEvent);
@@ -119,6 +132,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then((reg) => {
+        reg.update().catch(() => {});
         console.log('FarmTap SW registered:', reg.scope);
       })
       .catch((err) => {
@@ -315,6 +329,11 @@ window.waterPlot = function (plotIdx, triggeredFromWell = false) {
 
   farm.renderPlot(plotIdx);
   ui.updateWellDisplay(state.wellWater);
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem('farmtap_well_water', String(state.wellWater));
+    } catch (_) {}
+  }
   storage.save(state);
 };
 

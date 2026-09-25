@@ -183,10 +183,55 @@
               <circle cx="64" cy="68" r="2.5" fill="#38bdf8"></circle>
             </svg>
             <div class="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-950 border border-blue-400 px-1.5 py-0.5 rounded-full text-[8px] font-bold text-blue-200 shadow">
-              💧 WELL (<span id="waterStockPct">85%</span>)
+              💧 WELL (<span id="waterStockPct">100%</span>)
             </div>
           </div>
         </div>
+        <script>
+          (function() {
+            try {
+              let w = null;
+              const rawDirect = localStorage.getItem('farmtap_well_water');
+              if (rawDirect !== null && rawDirect !== '') {
+                const n = Number(rawDirect);
+                if (Number.isFinite(n)) w = Math.max(0, Math.min(100, Math.round(n)));
+              }
+              if (w === null) {
+                const rawSave = localStorage.getItem('ticker_tape_crops_save_v2') || localStorage.getItem('ticker_tape_crops_save_v1');
+                if (rawSave) {
+                  const p = JSON.parse(rawSave);
+                  if (p && p.wellWater !== undefined && p.wellWater !== null) {
+                    const n = Number(p.wellWater);
+                    if (Number.isFinite(n)) w = Math.max(0, Math.min(100, Math.round(n)));
+                  }
+                }
+              }
+              if (w !== null) {
+                const stockEl = document.getElementById('waterStockPct');
+                if (stockEl) stockEl.textContent = w + '%';
+                const wellBadge = stockEl ? stockEl.closest('div') : null;
+                if (wellBadge) {
+                  if (w < 20) {
+                    wellBadge.className = 'absolute -top-2 left-1/2 -translate-x-1/2 bg-amber-950 border border-amber-400 px-1.5 py-0.5 rounded-full text-[8px] font-bold text-amber-200 shadow animate-pulse';
+                    wellBadge.innerHTML = '💧 WELL (<span id="waterStockPct">' + w + '%</span> LOW)';
+                  } else {
+                    wellBadge.className = 'absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-950 border border-blue-400 px-1.5 py-0.5 rounded-full text-[8px] font-bold text-blue-200 shadow';
+                    wellBadge.innerHTML = '💧 WELL (<span id="waterStockPct">' + w + '%</span>)';
+                  }
+                }
+                const bar = document.getElementById('waterLevelBar');
+                if (bar) {
+                  const maxH = 13;
+                  const h = Math.max(1, (w / 100) * maxH);
+                  const y = 30 + (maxH - h);
+                  bar.setAttribute('height', h.toFixed(1));
+                  bar.setAttribute('y', y.toFixed(1));
+                  bar.setAttribute('fill', w < 20 ? '#f87171' : '#60a5fa');
+                }
+              }
+            } catch (_) {}
+          })();
+        </script>
 
         <!-- 3. BARN & HARVEST STORAGE CRATES (Mid-West) -->
         <div id="barnObj" class="world-interactive absolute z-20 cursor-pointer group" style="top: 360px; left: 10px; width: 125px; height: 120px;" onclick="interactWith('barn')">
