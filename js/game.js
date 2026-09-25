@@ -8,8 +8,24 @@ import { Market } from './market.js';
 import { EventSystem } from './events.js';
 import { UIManager } from './ui.js';
 
-// Initialize Game State
-const state = storage.load();
+// Initialize Game State from IndexedDB
+const state = await storage.load();
+
+// Request PWA Persistent Storage to prevent eviction
+storage.requestPersistentStorage();
+
+// Lifecycle autosave on app minimize / backgrounding / close
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    storage.save(state);
+  }
+});
+window.addEventListener('pagehide', () => {
+  storage.save(state);
+});
+window.addEventListener('beforeunload', () => {
+  storage.save(state);
+});
 
 // Initialize Subsystems
 const ui = new UIManager();
@@ -430,9 +446,9 @@ window.openModal = (id) => ui.openModal(id);
 window.closeModal = (id) => ui.closeModal(id);
 
 // 11. Reset game state
-window.resetGameState = function () {
+window.resetGameState = async function () {
   if (confirm('Start a fresh season? Progress will be reset.')) {
-    storage.reset();
+    await storage.reset();
     window.location.reload();
   }
 };

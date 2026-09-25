@@ -213,11 +213,7 @@
             </svg>
 
             <!-- Physical Harvested Crop Crates Cluster -->
-            <div id="barnCratesCluster" class="absolute -right-2 bottom-0 flex flex-wrap w-16 gap-1 z-20">
-              <div class="w-5 h-5 bg-amber-800 border border-amber-950 rounded-sm shadow text-[10px] flex items-center justify-center">🌾</div>
-              <div class="w-5 h-5 bg-amber-800 border border-amber-950 rounded-sm shadow text-[10px] flex items-center justify-center">🌽</div>
-              <div class="w-5 h-5 bg-amber-800 border border-amber-950 rounded-sm shadow text-[10px] flex items-center justify-center">🍅</div>
-            </div>
+            <div id="barnCratesCluster" class="absolute -right-2 bottom-0 flex flex-wrap w-16 gap-1 z-20"></div>
 
             <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-950/90 border border-red-400 px-2 py-0.5 rounded-full text-[9px] font-bold text-red-200 shadow-md flex items-center gap-1">
               <span>📦</span> <span>BARN (<span id="barnStockNum">0</span>/<span id="barnCapNum">30</span>)</span>
@@ -338,52 +334,67 @@
 
           <div class="grid grid-cols-2 gap-3 w-full">
             
-            <!-- PLOT 0: Wheat -->
-            <div id="plot-0" class="crop-plot relative bg-[#5e3818] border-2 border-emerald-500 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="onPlotClick(0)">
-              <div class="absolute inset-1 rounded-lg opacity-35 bg-[repeating-linear-gradient(45deg,#361c07,#361c07_4px,#4d2b0e_4px,#4d2b0e_8px)] pointer-events-none"></div>
+            <!-- PLOT 0: Tilled Soil / Empty -->
+            <div id="plot-0" class="crop-plot relative bg-[#5e3818] border-2 border-dashed border-amber-600/70 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="onPlotClick(0)">
+              <div class="absolute inset-1 rounded-lg opacity-45 bg-[repeating-linear-gradient(45deg,#361c07,#361c07_4px,#4d2b0e_4px,#4d2b0e_8px)] pointer-events-none"></div>
               <div class="relative z-10 flex flex-col justify-between h-full min-h-[82px]">
                 <div class="flex justify-between items-center text-[9px] px-1 font-bold">
-                  <span class="crop-badge text-amber-200">WHEAT</span>
-                  <span class="crop-status text-emerald-400 font-pixel text-[8px] animate-pulse">READY!</span>
+                  <span class="crop-badge text-stone-300">TILLED SOIL</span>
+                  <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex items-end justify-around my-1 h-10 px-1"></div>
-                <div class="w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-emerald-500 h-full" style="width: 100%;"></div>
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                  <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
+                    <span class="text-xs font-black">+</span>
+                  </div>
+                  <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
+                </div>
+                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
+                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
                 </div>
               </div>
-              <div class="pulse-ring absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
+              <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
             </div>
 
-            <!-- PLOT 1: Corn -->
-            <div id="plot-1" class="crop-plot relative bg-[#5e3818] border-2 border-emerald-500 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="onPlotClick(1)">
-              <div class="absolute inset-1 rounded-lg opacity-35 bg-[repeating-linear-gradient(45deg,#361c07,#361c07_4px,#4d2b0e_4px,#4d2b0e_8px)] pointer-events-none"></div>
+            <!-- PLOT 1: Tilled Soil / Empty -->
+            <div id="plot-1" class="crop-plot relative bg-[#5e3818] border-2 border-dashed border-amber-600/70 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="onPlotClick(1)">
+              <div class="absolute inset-1 rounded-lg opacity-45 bg-[repeating-linear-gradient(45deg,#361c07,#361c07_4px,#4d2b0e_4px,#4d2b0e_8px)] pointer-events-none"></div>
               <div class="relative z-10 flex flex-col justify-between h-full min-h-[82px]">
                 <div class="flex justify-between items-center text-[9px] px-1 font-bold">
-                  <span class="crop-badge text-yellow-200">CORN</span>
-                  <span class="crop-status text-emerald-400 font-pixel text-[8px] animate-pulse">READY!</span>
+                  <span class="crop-badge text-stone-300">TILLED SOIL</span>
+                  <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex items-end justify-around my-1 h-10 px-1"></div>
-                <div class="w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-emerald-500 h-full" style="width: 100%;"></div>
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                  <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
+                    <span class="text-xs font-black">+</span>
+                  </div>
+                  <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
+                </div>
+                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
+                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
                 </div>
               </div>
-              <div class="pulse-ring absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
+              <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
             </div>
 
-            <!-- PLOT 2: Tomato -->
-            <div id="plot-2" class="crop-plot relative bg-[#5e3818] border-2 border-emerald-500 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="onPlotClick(2)">
-              <div class="absolute inset-1 rounded-lg opacity-35 bg-[repeating-linear-gradient(45deg,#361c07,#361c07_4px,#4d2b0e_4px,#4d2b0e_8px)] pointer-events-none"></div>
+            <!-- PLOT 2: Tilled Soil / Empty -->
+            <div id="plot-2" class="crop-plot relative bg-[#5e3818] border-2 border-dashed border-amber-600/70 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="onPlotClick(2)">
+              <div class="absolute inset-1 rounded-lg opacity-45 bg-[repeating-linear-gradient(45deg,#361c07,#361c07_4px,#4d2b0e_4px,#4d2b0e_8px)] pointer-events-none"></div>
               <div class="relative z-10 flex flex-col justify-between h-full min-h-[82px]">
                 <div class="flex justify-between items-center text-[9px] px-1 font-bold">
-                  <span class="crop-badge text-rose-300">TOMATO</span>
-                  <span class="crop-status text-emerald-400 font-pixel text-[8px] animate-pulse">READY!</span>
+                  <span class="crop-badge text-stone-300">TILLED SOIL</span>
+                  <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex items-end justify-around my-1 h-10 px-1"></div>
-                <div class="w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-emerald-500 h-full" style="width: 100%;"></div>
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                  <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
+                    <span class="text-xs font-black">+</span>
+                  </div>
+                  <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
+                </div>
+                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
+                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
                 </div>
               </div>
-              <div class="pulse-ring absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
+              <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
             </div>
 
             <!-- PLOT 3: Tilled Soil / Empty -->
@@ -394,7 +405,12 @@
                   <span class="crop-badge text-stone-300">TILLED SOIL</span>
                   <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10"></div>
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                  <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
+                    <span class="text-xs font-black">+</span>
+                  </div>
+                  <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
+                </div>
                 <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
                   <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
                 </div>
@@ -402,20 +418,25 @@
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
             </div>
 
-            <!-- PLOT 4: Potato -->
-            <div id="plot-4" class="crop-plot relative bg-[#5e3818] border-2 border-emerald-500 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="onPlotClick(4)">
-              <div class="absolute inset-1 rounded-lg opacity-35 bg-[repeating-linear-gradient(45deg,#361c07,#361c07_4px,#4d2b0e_4px,#4d2b0e_8px)] pointer-events-none"></div>
+            <!-- PLOT 4: Tilled Soil / Empty -->
+            <div id="plot-4" class="crop-plot relative bg-[#5e3818] border-2 border-dashed border-amber-600/70 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="onPlotClick(4)">
+              <div class="absolute inset-1 rounded-lg opacity-45 bg-[repeating-linear-gradient(45deg,#361c07,#361c07_4px,#4d2b0e_4px,#4d2b0e_8px)] pointer-events-none"></div>
               <div class="relative z-10 flex flex-col justify-between h-full min-h-[82px]">
                 <div class="flex justify-between items-center text-[9px] px-1 font-bold">
-                  <span class="crop-badge text-amber-100">POTATO</span>
-                  <span class="crop-status text-emerald-400 font-pixel text-[8px] animate-pulse">READY!</span>
+                  <span class="crop-badge text-stone-300">TILLED SOIL</span>
+                  <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex items-end justify-around my-1 h-10 px-1"></div>
-                <div class="w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-emerald-500 h-full" style="width: 100%;"></div>
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                  <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
+                    <span class="text-xs font-black">+</span>
+                  </div>
+                  <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
+                </div>
+                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
+                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
                 </div>
               </div>
-              <div class="pulse-ring absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
+              <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
             </div>
 
             <!-- PLOT 5: Locked Expansion Plot (Upgradable in Farmhouse) -->
@@ -514,7 +535,7 @@
             </div>
             <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full border border-amber-500/50">
               <span class="text-xs">🪙</span>
-              <span id="marketCoinDisplay" class="font-pixel text-xs text-amber-300 font-bold">$1240</span>
+              <span id="marketCoinDisplay" class="font-pixel text-xs text-amber-300 font-bold">$500</span>
             </div>
           </div>
 
@@ -640,7 +661,7 @@
                       <span>Spot: <strong id="price-wheat" class="text-amber-200 font-pixel text-[9px] sm:text-[10px]">$32</strong></span>
                       <span>Seed: <strong id="market-seedcost-wheat" class="text-amber-100 font-pixel text-[9px] sm:text-[10px]">$6</strong></span>
                       <span>Net: <strong id="market-margin-wheat" class="text-emerald-300 font-bold">+$26</strong></span>
-                      <span>Barn: <strong id="stock-wheat" class="text-white">6</strong></span>
+                      <span>Barn: <strong id="stock-wheat" class="text-white">0</strong></span>
                     </div>
                   </div>
                 </div>
@@ -667,7 +688,7 @@
                       <span>Spot: <strong id="price-corn" class="text-amber-200 font-pixel text-[9px] sm:text-[10px]">$47</strong></span>
                       <span>Seed: <strong id="market-seedcost-corn" class="text-amber-100 font-pixel text-[9px] sm:text-[10px]">$12</strong></span>
                       <span>Net: <strong id="market-margin-corn" class="text-emerald-300 font-bold">+$35</strong></span>
-                      <span>Barn: <strong id="stock-corn" class="text-white">4</strong></span>
+                      <span>Barn: <strong id="stock-corn" class="text-white">0</strong></span>
                     </div>
                   </div>
                 </div>
@@ -694,7 +715,7 @@
                       <span>Spot: <strong id="price-tomato" class="text-amber-200 font-pixel text-[9px] sm:text-[10px]">$49</strong></span>
                       <span>Seed: <strong id="market-seedcost-tomato" class="text-amber-100 font-pixel text-[9px] sm:text-[10px]">$18</strong></span>
                       <span>Net: <strong id="market-margin-tomato" class="text-emerald-300 font-bold">+$31</strong></span>
-                      <span>Barn: <strong id="stock-tomato" class="text-white">3</strong></span>
+                      <span>Barn: <strong id="stock-tomato" class="text-white">0</strong></span>
                     </div>
                   </div>
                 </div>
@@ -721,7 +742,7 @@
                       <span>Spot: <strong id="price-potato" class="text-amber-200 font-pixel text-[9px] sm:text-[10px]">$10</strong></span>
                       <span>Seed: <strong id="market-seedcost-potato" class="text-amber-100 font-pixel text-[9px] sm:text-[10px]">$5</strong></span>
                       <span>Net: <strong id="market-margin-potato" class="text-emerald-300 font-bold">+$5</strong></span>
-                      <span>Barn: <strong id="stock-potato" class="text-white">1</strong></span>
+                      <span>Barn: <strong id="stock-potato" class="text-white">0</strong></span>
                     </div>
                   </div>
                 </div>
@@ -808,7 +829,7 @@
             <!-- Gold Pill -->
             <div class="bg-amber-950/90 backdrop-blur border-2 border-amber-500 px-2 sm:px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5">
               <span class="text-sm sm:text-base animate-spin" style="animation-duration: 8s;">🪙</span>
-              <span id="playerGoldDisplay" class="font-pixel text-[10px] sm:text-xs text-amber-300 font-bold tracking-wider">$1240</span>
+              <span id="playerGoldDisplay" class="font-pixel text-[10px] sm:text-xs text-amber-300 font-bold tracking-wider">$500</span>
             </div>
 
             <!-- Barn Granary Quick Counter -->

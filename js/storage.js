@@ -1,5 +1,9 @@
-// Local Persistence using localStorage with graceful fallback
-const STORAGE_KEY = 'ticker_tape_crops_save_v1';
+// Persistent Storage using IndexedDB (with PWA persistent storage request & legacy migration)
+
+const DB_NAME = 'farmtap_idb_v1';
+const DB_VERSION = 1;
+const STORE_NAME = 'farm_saves';
+const SAVE_KEY = 'player_state';
 
 export const VALID_CROPS = ['wheat', 'corn', 'tomato', 'potato', 'rice', 'sugarcane'];
 
@@ -36,16 +40,16 @@ export function sanitizeInventory(targetInv) {
 }
 
 export const defaultState = {
-  gold: 1240,
+  gold: 500,
   weather: 'sunny', // 'sunny', 'heavy_rain', 'drought', 'festival'
   barnCapacity: 30,
   activeTargetPlot: null,
   muted: false,
   inventory: {
-    wheat: 6,
-    corn: 4,
-    tomato: 3,
-    potato: 1,
+    wheat: 0,
+    corn: 0,
+    tomato: 0,
+    potato: 0,
     rice: 0,
     sugarcane: 0
   },
@@ -67,11 +71,11 @@ export const defaultState = {
   },
   lastHourKey: null,
   plots: [
-    { id: 0, state: 'mature', crop: 'wheat', progress: 100, timer: 0 },
-    { id: 1, state: 'mature', crop: 'corn', progress: 100, timer: 0 },
-    { id: 2, state: 'mature', crop: 'tomato', progress: 100, timer: 0 },
+    { id: 0, state: 'empty', crop: null, progress: 0, timer: 0 },
+    { id: 1, state: 'empty', crop: null, progress: 0, timer: 0 },
+    { id: 2, state: 'empty', crop: null, progress: 0, timer: 0 },
     { id: 3, state: 'empty', crop: null, progress: 0, timer: 0 },
-    { id: 4, state: 'mature', crop: 'potato', progress: 100, timer: 0 },
+    { id: 4, state: 'empty', crop: null, progress: 0, timer: 0 },
     { id: 5, state: 'locked', crop: null, progress: 0, timer: 0 }
   ],
   upgrades: {
@@ -87,8 +91,110 @@ export const defaultState = {
   }
 };
 
+// IndexedDB Helper
+let idbPromise = null;
+
+function openDatabase() {
+  if (idbPromise) return idbPromise;
+
+  idbPromise = new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      return reject(new Error('IndexedDB not supported in this browser'));
+    }
+
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+
+    request.onsuccess = (event) => {
+      resolve(event.target.result);
+    };
+
+    request.onerror = (event) => {
+      console.warn('IndexedDB failed to open:', event.target.error);
+      reject(event.target.error);
+    };
+  });
+
+  return idbPromise;
+}
+
+async function idbGet(key) {
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    console.warn('idbGet error:', e);
+    return null;
+  }
+}
+
+async function idbSet(key, value) {
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(value, key);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    console.warn('idbSet error:', e);
+    return false;
+  }
+}
+
+async function idbClear() {
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.clear();
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    console.warn('idbClear error:', e);
+    return false;
+  }
+}
+
+export async function requestPersistentStorage() {
+  if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
+    try {
+      const isPersisted = await navigator.storage.persisted();
+      if (!isPersisted) {
+        const granted = await navigator.storage.persist();
+        console.log(`PWA Persistent storage granted: ${granted}`);
+      } else {
+        console.log('PWA Storage is already persistent');
+      }
+    } catch (e) {
+      console.warn('Could not request persistent storage:', e);
+    }
+  }
+}
+
+// In-memory cache of state for rapid access
+let cachedState = null;
+
 export const storage = {
-  save(state) {
+  requestPersistentStorage,
+
+  async save(state) {
     try {
       state.inventory = sanitizeInventory(state.inventory);
       const dataToSave = {
@@ -107,28 +213,62 @@ export const storage = {
         activeEvent: state.activeEvent,
         timestamp: Date.now()
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+      cachedState = dataToSave;
+      await idbSet(SAVE_KEY, dataToSave);
     } catch (e) {
-      console.warn('Failed to save to localStorage:', e);
+      console.warn('Failed to save state to IndexedDB:', e);
     }
   },
 
-  load() {
+  async load() {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      // 1. Attempt to load from IndexedDB
+      let saved = await idbGet(SAVE_KEY);
+
+      // 2. Migration from legacy localStorage if IndexedDB is empty
+      if (!saved && typeof localStorage !== 'undefined') {
+        const legacyKeyV2 = 'ticker_tape_crops_save_v2';
+        const legacyKeyV1 = 'ticker_tape_crops_save_v1';
+        const rawLocal = localStorage.getItem(legacyKeyV2) || localStorage.getItem(legacyKeyV1);
+        if (rawLocal) {
+          try {
+            saved = JSON.parse(rawLocal);
+            // Migrate to IndexedDB
+            await idbSet(SAVE_KEY, saved);
+            localStorage.removeItem(legacyKeyV2);
+            localStorage.removeItem(legacyKeyV1);
+            console.log('Migrated player save from localStorage to IndexedDB');
+          } catch (migErr) {
+            console.warn('Legacy migration error:', migErr);
+          }
+        }
+      }
+
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed = saved;
         const plots = Array.isArray(parsed.plots) && parsed.plots.length === 6 ? parsed.plots : defaultState.plots;
 
-        // Ensure all growing plots have synchronized timer and progress
+        // Offline time recovery: simulate crop growth while app was closed
+        const savedTime = Number(parsed.timestamp);
+        const now = Date.now();
+        const elapsedSeconds = Number.isFinite(savedTime) && savedTime > 0
+          ? Math.max(0, Math.floor((now - savedTime) / 1000))
+          : 0;
+
+        const cropTimes = { wheat: 10, corn: 16, tomato: 22, potato: 8, rice: 14, sugarcane: 30 };
+
         plots.forEach((p) => {
           if (p.state === 'growing' && p.crop) {
-            const cropTimes = { wheat: 10, corn: 16, tomato: 22, potato: 8, rice: 14, sugarcane: 30 };
             const total = p.totalTime || cropTimes[p.crop] || 12;
             p.totalTime = total;
-            if (p.timer === undefined || p.timer === null) {
-              p.timer = Math.round(total * (1 - (p.progress || 0) / 100));
+            let currentTimer = (p.timer !== undefined && p.timer !== null) ? p.timer : total;
+
+            // Apply elapsed time while user was away
+            if (elapsedSeconds > 0) {
+              currentTimer = Math.max(0, currentTimer - elapsedSeconds);
             }
+
+            p.timer = currentTimer;
             if (p.timer <= 0) {
               p.state = 'mature';
               p.progress = 100;
@@ -143,7 +283,7 @@ export const storage = {
         const cleanInv = sanitizeInventory(parsed.inventory !== undefined ? parsed.inventory : defaultState.inventory);
 
         // Deep merge with defaults so new fields are never undefined
-        return {
+        const mergedState = {
           ...defaultState,
           ...parsed,
           inventory: cleanInv,
@@ -152,17 +292,36 @@ export const storage = {
           upgrades: { ...defaultState.upgrades, ...(parsed.upgrades || {}) },
           plots
         };
+
+        cachedState = mergedState;
+        // Save the updated state with new timestamp
+        this.save(mergedState);
+        return mergedState;
       }
     } catch (e) {
-      console.warn('Failed to load from localStorage:', e);
+      console.warn('Failed to load from IndexedDB:', e);
     }
-    return JSON.parse(JSON.stringify(defaultState));
+
+    // Fresh game state for new users (500 gold, no crops planted, plots 0-4 empty, 5 locked)
+    const fresh = JSON.parse(JSON.stringify(defaultState));
+    cachedState = fresh;
+    this.save(fresh);
+    return fresh;
   },
 
-  reset() {
+  async reset() {
     try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (e) {}
-    return JSON.parse(JSON.stringify(defaultState));
+      await idbClear();
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('ticker_tape_crops_save_v2');
+        localStorage.removeItem('ticker_tape_crops_save_v1');
+      }
+    } catch (e) {
+      console.warn('Reset error:', e);
+    }
+    const fresh = JSON.parse(JSON.stringify(defaultState));
+    cachedState = fresh;
+    await idbSet(SAVE_KEY, fresh);
+    return fresh;
   }
 };
