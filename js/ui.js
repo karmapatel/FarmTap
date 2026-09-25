@@ -8,6 +8,7 @@ export class UIManager {
     this.setupViewportScaling();
     this.setupInstallPrompt();
     this.setupNetworkStatus();
+    this.setupPullToRefresh();
   }
 
   // Calculate and update the dynamic scale factor so worldStage and all game components fit within any screen
@@ -291,5 +292,75 @@ export class UIManager {
     window.addEventListener('online', updateBanner);
     window.addEventListener('offline', updateBanner);
     updateBanner();
+  }
+
+  // Pull-to-refresh handling (compatible with native browser gestures & standalone PWA)
+  setupPullToRefresh() {
+    let startY = 0;
+    let currentY = 0;
+    let isTracking = false;
+    const indicator = document.getElementById('pullToRefreshIndicator');
+    const ptrIcon = document.getElementById('ptrIcon');
+    const ptrText = document.getElementById('ptrText');
+    const threshold = 70;
+
+    // Use strictly passive listeners so native gestures and scrolling are NEVER blocked or prevented
+    window.addEventListener('touchstart', (e) => {
+      // Only track if at the very top of the page
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      if (scrollTop <= 5 && e.touches.length === 1) {
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        isTracking = startY < 180 || scrollTop <= 0;
+      } else {
+        isTracking = false;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isTracking || e.touches.length !== 1) return;
+      currentY = e.touches[0].clientY;
+      const pullDistance = currentY - startY;
+
+      if (pullDistance > 25 && indicator) {
+        indicator.classList.remove('opacity-0', '-translate-y-6', 'pointer-events-none');
+        indicator.classList.add('opacity-100', 'translate-y-0');
+
+        if (pullDistance >= threshold) {
+          if (ptrIcon) ptrIcon.style.transform = 'rotate(180deg)';
+          if (ptrText) ptrText.textContent = 'Release to refresh';
+        } else {
+          if (ptrIcon) ptrIcon.style.transform = 'rotate(0deg)';
+          if (ptrText) ptrText.textContent = 'Pull down to refresh';
+        }
+      }
+    }, { passive: true });
+
+    const finishGesture = () => {
+      if (!isTracking) return;
+      const pullDistance = currentY - startY;
+      isTracking = false;
+
+      if (pullDistance >= threshold && indicator) {
+        if (ptrText) ptrText.textContent = 'Refreshing FarmTap...';
+        if (ptrIcon) {
+          ptrIcon.textContent = '⟳';
+          ptrIcon.classList.add('animate-spin');
+        }
+        setTimeout(() => {
+          window.location.reload();
+        }, 180);
+      } else if (indicator) {
+        indicator.classList.remove('opacity-100', 'translate-y-0');
+        indicator.classList.add('opacity-0', '-translate-y-6', 'pointer-events-none');
+        if (ptrIcon) ptrIcon.style.transform = 'rotate(0deg)';
+        if (ptrText) ptrText.textContent = 'Pull down to refresh';
+      }
+      startY = 0;
+      currentY = 0;
+    };
+
+    window.addEventListener('touchend', finishGesture, { passive: true });
+    window.addEventListener('touchcancel', finishGesture, { passive: true });
   }
 }

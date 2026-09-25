@@ -6,11 +6,19 @@
 }
 
 * {
-  touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 html, body {
@@ -21,12 +29,43 @@ html, body {
 
 body {
   font-family: var(--font-sans);
-  overflow: hidden;
-  background: #1c3516;
+  min-height: 100%;
+  min-height: 100dvh;
+  width: 100vw;
   margin: 0;
   padding: 0;
-  width: 100vw;
-  height: 100vh;
+  background: #1c3516;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fast touch response for buttons and interactive controls */
+button,
+.btn-tactile,
+.world-interactive,
+a,
+input,
+select,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Hide scrollbars completely while preserving native scrolling and pull-to-refresh overscroll */
+html,
+body,
+#gameViewport {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#gameViewport::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+  width: 0;
+  height: 0;
 }
 
 .font-pixel {
@@ -45,11 +84,22 @@ body {
 #gameViewport {
   position: relative;
   width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   background: #46792b;
   display: flex;
   flex-direction: column;
+}
+
+#worldMap,
+#farmGroundLawn {
+  touch-action: pan-y;
+  overscroll-behavior-y: auto;
 }
 
 /* Responsive Farm World Stage Container */

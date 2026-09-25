@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>FarmTap</title>
     <meta name="description" content="FarmTap — Pastoral 2D farm simulation and live commodity market progressive web app. Plant, grow, harvest crops and trade on fluctuating market trends." />
     <meta property="og:title" content="FarmTap" />
@@ -28,7 +28,13 @@
 
     <link rel="stylesheet" href="/css/style.css" />
   </head>
-  <body class="bg-[#1c3516] text-amber-50 h-screen w-screen overflow-hidden flex flex-col justify-between">
+  <body class="bg-[#1c3516] text-amber-50 min-h-screen w-screen overflow-x-hidden overflow-y-auto flex flex-col justify-between">
+
+    <!-- Pull-to-refresh Visual Indicator for Mobile/PWA -->
+    <div id="pullToRefreshIndicator" class="fixed top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-200 opacity-0 -translate-y-6 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-950/95 border-2 border-amber-400 text-amber-200 text-xs font-bold shadow-2xl backdrop-blur">
+      <span id="ptrIcon" class="transition-transform duration-200 inline-block text-emerald-400">↓</span>
+      <span id="ptrText">Pull down to refresh</span>
+    </div>
 
     <!-- MAIN GAME VIEWPORT CONTAINER -->
     <div id="gameViewport" class="relative w-full h-full select-none cursor-crosshair">
