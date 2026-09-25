@@ -91,39 +91,150 @@ export const cropConfigs = {
     basePrice: 65,
     minPrice: 35,
     maxPrice: 120,
-    icon: '🍬',
-    color: '#ec4899',
+    icon: '🎋',
+    color: '#10b981',
     buyer: 'Baker Dan',
-    desc: 'Premium confectionary sweetener for town treats.'
+    desc: 'Tall sweet tropical cane stalks with high juice yield.'
+  }
+};
+
+export const CROP_GROWTH_STAGES = {
+  wheat: {
+    animClass: 'anim-wheat',
+    readyClass: 'ready-wheat',
+    color: '#eab308',
+    sprout: { icons: ['🌾', '🌱'], label: 'Wheat Sprout' },
+    small: { icons: ['🌿', '🌾'], label: 'Green Blades' },
+    medium: { icons: ['🌾', '🌿'], label: 'Grain Stalk' },
+    maturing: { icons: ['🌾', '🌾'], label: 'Golden Sheaf' },
+    full: { icons: ['🌾', '✨', '🌾'], label: 'Ripe Wheat' }
+  },
+  corn: {
+    animClass: 'anim-corn',
+    readyClass: 'ready-corn',
+    color: '#facc15',
+    sprout: { icons: ['🌱', '🪴'], label: 'Corn Seedling' },
+    small: { icons: ['🌿', '🌽'], label: 'Leafy Stalk' },
+    medium: { icons: ['🌽', '🌿'], label: 'Silk Tassels' },
+    maturing: { icons: ['🌽', '🌽'], label: 'Sweet Cobs' },
+    full: { icons: ['🌽', '✨', '🌽'], label: 'Golden Corn' }
+  },
+  tomato: {
+    animClass: 'anim-tomato',
+    readyClass: 'ready-tomato',
+    color: '#ef4444',
+    sprout: { icons: ['🌱', '🍃'], label: 'Vine Sprout' },
+    small: { icons: ['🌿', '☘️'], label: 'Tomato Vine' },
+    medium: { icons: ['🌼', '🌿'], label: 'Yellow Flowers' },
+    maturing: { icons: ['🍅', '🌿'], label: 'Reddening Fruit' },
+    full: { icons: ['🍅', '✨', '🍅'], label: 'Juicy Tomatoes' }
+  },
+  potato: {
+    animClass: 'anim-potato',
+    readyClass: 'ready-potato',
+    color: '#ca8a04',
+    sprout: { icons: ['🥔', '🌱'], label: 'Tuber Eye' },
+    small: { icons: ['☘️', '🌿'], label: 'Potato Bush' },
+    medium: { icons: ['🌸', '🌿'], label: 'Flowering Bush' },
+    maturing: { icons: ['🥔', '☘️'], label: 'Soil Mound' },
+    full: { icons: ['🥔', '✨', '🥔'], label: 'Russet Harvest' }
+  },
+  rice: {
+    animClass: 'anim-rice',
+    readyClass: 'ready-rice',
+    color: '#06b6d4',
+    sprout: { icons: ['🌱', '💧'], label: 'Water Shoot' },
+    small: { icons: ['🌿', '🌾'], label: 'Paddy Blade' },
+    medium: { icons: ['🌾', '💧'], label: 'Paddy Grass' },
+    maturing: { icons: ['🌾', '🍚'], label: 'Bowing Grain' },
+    full: { icons: ['🍚', '✨', '🌾'], label: 'Pearl Rice' }
+  },
+  sugarcane: {
+    animClass: 'anim-sugarcane',
+    readyClass: 'ready-sugarcane',
+    color: '#10b981',
+    sprout: { icons: ['🌱', '🎋'], label: 'Cane Sprout' },
+    small: { icons: ['🎋', '🌱'], label: 'Young Reed' },
+    medium: { icons: ['🎋', '🌿'], label: 'Tropical Cane' },
+    maturing: { icons: ['🎋', '🎋'], label: 'Sweet Reeds' },
+    full: { icons: ['🎋', '✨', '🎋'], label: 'Cane Harvest' }
   }
 };
 
 export function renderCropPlantSprites(cropId, progress) {
   const cfg = cropConfigs[cropId] || cropConfigs.wheat;
-  const icon = cfg.icon;
+  const stages = CROP_GROWTH_STAGES[cropId] || {
+    animClass: 'anim-wheat',
+    readyClass: 'ready-wheat',
+    color: '#eab308',
+    sprout: { icons: ['🌱', cfg.icon], label: `${cfg.name} Sprout` },
+    small: { icons: ['🌿', cfg.icon], label: 'Small Plant' },
+    medium: { icons: ['🌿', cfg.icon], label: 'Growing' },
+    maturing: { icons: [cfg.icon, '🌿'], label: 'Maturing' },
+    full: { icons: [cfg.icon, '✨', cfg.icon], label: 'Full Plant' }
+  };
 
-  if (progress >= 100) {
-    // Mature stage: 2 large swaying plants with glow
+  const pct = Math.max(0, Math.min(100, Math.round(progress)));
+
+  if (pct >= 100) {
+    // Stage 5: Full Plant / Mature (100%) - Ready for harvest with crop-specific animation & celebration
+    const s = stages.full;
     return `
-      <div class="plant-stalk flex items-end justify-center w-full gap-2 wind-sway">
-        <span class="text-2xl filter drop-shadow">${icon}</span>
-        <span class="text-2xl filter drop-shadow">${icon}</span>
+      <div class="plant-stage-wrapper flex flex-col items-center justify-center w-full h-full select-none">
+        <div class="plant-stalk flex items-end justify-center w-full gap-1 h-6 ${stages.animClass} ${stages.readyClass}">
+          <span class="text-2xl filter drop-shadow">${s.icons[0]}</span>
+          <span class="text-xs text-yellow-300 animate-pulse">✨</span>
+          <span class="text-2xl filter drop-shadow">${s.icons[2] || s.icons[0]}</span>
+        </div>
+        <span class="text-[8px] font-bold text-emerald-400 font-pixel tracking-tight leading-none mt-1">${s.label}</span>
       </div>
     `;
-  } else if (progress >= 50) {
-    // Mid growth: 1 young crop + small sprout
+  } else if (pct >= 75) {
+    // Stage 4: Maturing Plant (75% - 99%) - Ripening crop with distinct crop animation
+    const s = stages.maturing;
     return `
-      <div class="plant-stalk flex items-end justify-center w-full gap-2 wind-sway">
-        <span class="text-xl filter drop-shadow">${icon}</span>
-        <span class="text-sm">🌿</span>
+      <div class="plant-stage-wrapper flex flex-col items-center justify-center w-full h-full select-none">
+        <div class="plant-stalk flex items-end justify-center w-full gap-1.5 h-6 ${stages.animClass}">
+          <span class="text-xl filter drop-shadow">${s.icons[0]}</span>
+          <span class="text-base filter drop-shadow">${s.icons[1]}</span>
+        </div>
+        <span class="text-[8px] font-bold uppercase tracking-tight leading-none mt-1" style="color: ${stages.color}">${s.label}</span>
+      </div>
+    `;
+  } else if (pct >= 50) {
+    // Stage 3: Growing Plant (50% - 74%) - Foliage and flowers with distinct crop animation
+    const s = stages.medium;
+    return `
+      <div class="plant-stage-wrapper flex flex-col items-center justify-center w-full h-full select-none">
+        <div class="plant-stalk flex items-end justify-center w-full gap-1.5 h-6 ${stages.animClass}">
+          <span class="text-xl filter drop-shadow">${s.icons[0]}</span>
+          <span class="text-base filter drop-shadow">${s.icons[1]}</span>
+        </div>
+        <span class="text-[8px] font-bold text-yellow-300 uppercase tracking-tight leading-none mt-1">${s.label}</span>
+      </div>
+    `;
+  } else if (pct >= 25) {
+    // Stage 2: Small Plant (25% - 49%) - Young shoot with distinct crop animation
+    const s = stages.small;
+    return `
+      <div class="plant-stage-wrapper flex flex-col items-center justify-center w-full h-full select-none">
+        <div class="plant-stalk flex items-end justify-center w-full gap-1.5 h-6 ${stages.animClass}">
+          <span class="text-lg filter drop-shadow">${s.icons[0]}</span>
+          <span class="text-sm filter drop-shadow">${s.icons[1]}</span>
+        </div>
+        <span class="text-[8px] font-bold text-lime-300 uppercase tracking-tight leading-none mt-1">${s.label}</span>
       </div>
     `;
   } else {
-    // Early sprout stage
+    // Stage 1: Sprout (0% - 24%) - Emerging seedling with distinct crop seedling icons & animation
+    const s = stages.sprout;
     return `
-      <div class="plant-stalk flex items-end justify-center w-full gap-2">
-        <span class="text-base animate-pulse">🌱</span>
-        <span class="text-xs">🌱</span>
+      <div class="plant-stage-wrapper flex flex-col items-center justify-center w-full h-full select-none">
+        <div class="plant-stalk flex items-end justify-center gap-1.5 h-6 ${stages.animClass}">
+          <span class="text-base filter drop-shadow" title="${s.label}">${s.icons[0]}</span>
+          <span class="text-xs text-stone-200 filter drop-shadow">${s.icons[1]}</span>
+        </div>
+        <span class="text-[8px] font-bold text-emerald-300 uppercase tracking-tight leading-none mt-1">${s.label}</span>
       </div>
     `;
   }

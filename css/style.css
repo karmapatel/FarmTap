@@ -183,6 +183,110 @@ body::-webkit-scrollbar,
   animation: windSway 3s ease-in-out infinite;
 }
 
+/* Distinct Crop-Specific Animations */
+/* 1. Wheat: Gentle prairie breeze wave with swaying heads */
+@keyframes wheatBreeze {
+  0%, 100% { transform: rotate(0deg) skewX(0deg); }
+  30% { transform: rotate(-5deg) skewX(-2deg); }
+  70% { transform: rotate(7deg) skewX(3deg); }
+}
+.anim-wheat {
+  transform-origin: bottom center;
+  animation: wheatBreeze 2.8s ease-in-out infinite;
+}
+
+/* 2. Corn: Stiff upright stalks with rhythmic nodding and leaf rustle */
+@keyframes cornNod {
+  0%, 100% { transform: translateY(0px) rotate(0deg) scaleY(1); }
+  25% { transform: translateY(-1px) rotate(-3.5deg) scaleY(1.02); }
+  60% { transform: translateY(1px) rotate(3deg) scaleY(0.99); }
+  85% { transform: translateY(-0.5px) rotate(-1.5deg) scaleY(1.01); }
+}
+.anim-corn {
+  transform-origin: bottom center;
+  animation: cornNod 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 3. Tomato: Springy vine bobbing with heavy pendulous fruit clusters */
+@keyframes tomatoVineBob {
+  0%, 100% { transform: translateY(0px) scale(1) rotate(0deg); }
+  35% { transform: translateY(2.5px) scale(1.03, 0.97) rotate(2.5deg); }
+  65% { transform: translateY(-1.5px) scale(0.98, 1.02) rotate(-2deg); }
+}
+.anim-tomato {
+  transform-origin: top center;
+  animation: tomatoVineBob 2.4s ease-in-out infinite;
+}
+
+/* 4. Potato: Earthy mound rumble and dense leafy bush tremble */
+@keyframes potatoTremble {
+  0%, 100% { transform: scale(1) rotate(0deg) translateY(0); }
+  25% { transform: scale(1.04, 0.96) rotate(-2deg) translateY(0.5px); }
+  50% { transform: scale(0.97, 1.03) rotate(1.5deg) translateY(-0.5px); }
+  75% { transform: scale(1.02, 0.98) rotate(-0.5deg) translateY(0.2px); }
+}
+.anim-potato {
+  transform-origin: bottom center;
+  animation: potatoTremble 1.9s ease-in-out infinite;
+}
+
+/* 5. Rice: Wetland paddy shimmer with fluid quick wave ripples */
+@keyframes ricePaddyShimmer {
+  0%, 100% { transform: skewX(0deg) rotate(0deg); }
+  25% { transform: skewX(-4.5deg) rotate(-3.5deg) translateX(-1px); }
+  75% { transform: skewX(4.5deg) rotate(3.5deg) translateX(1px); }
+}
+.anim-rice {
+  transform-origin: bottom center;
+  animation: ricePaddyShimmer 1.6s ease-in-out infinite;
+}
+
+/* 6. Sugarcane: Deep wide bending arc of tall flexible canes */
+@keyframes sugarcaneFlex {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  35% { transform: rotate(-9deg) scaleY(1.04) skewX(-4deg); }
+  70% { transform: rotate(9deg) scaleY(0.97) skewX(4deg); }
+}
+.anim-sugarcane {
+  transform-origin: bottom center;
+  animation: sugarcaneFlex 3.4s ease-in-out infinite;
+}
+
+/* Signature Harvest-Ready Celebrations */
+@keyframes matureGlowWheat {
+  0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.6)); }
+  50% { transform: translateY(-3px) scale(1.09); filter: drop-shadow(0 0 7px rgba(245, 158, 11, 0.9)); }
+}
+@keyframes maturePopCorn {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.12, 0.92) rotate(-3deg); }
+  55% { transform: scale(0.94, 1.1) rotate(3deg); }
+}
+@keyframes maturePulseTomato {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.6)); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(220, 38, 38, 0.95)); }
+}
+@keyframes matureUnearthPotato {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-2px) rotate(-4deg); }
+  75% { transform: translateY(-2px) rotate(4deg); }
+}
+@keyframes matureRippleRice {
+  0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.5)); }
+  50% { transform: scale(1.08) rotate(2deg); filter: drop-shadow(0 0 7px rgba(125, 211, 252, 0.9)); }
+}
+@keyframes matureSweetCane {
+  0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.5)); }
+  50% { transform: scale(1.1) rotate(-4deg); filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.9)); }
+}
+
+.ready-wheat { animation: matureGlowWheat 1.5s ease-in-out infinite; }
+.ready-corn { animation: maturePopCorn 1.2s ease-in-out infinite; }
+.ready-tomato { animation: maturePulseTomato 1.4s ease-in-out infinite; }
+.ready-potato { animation: matureUnearthPotato 1.6s ease-in-out infinite; }
+.ready-rice { animation: matureRippleRice 1.3s ease-in-out infinite; }
+.ready-sugarcane { animation: matureSweetCane 1.7s ease-in-out infinite; }
+
 @keyframes chimneyPuff {
   0% { transform: translate(0, 0) scale(0.4); opacity: 0.8; }
   50% { transform: translate(-8px, -24px) scale(1.2); opacity: 0.6; }
@@ -277,5 +381,80 @@ body::-webkit-scrollbar,
 /* Crop growth progress bar transition */
 .crop-prog-bar {
   transition: width 0.95s linear;
+}
+
+/* Moisture bar transition */
+.moisture-bar {
+  transition: width 0.4s ease-out;
+}
+
+/* Dynamic Soil Moisture Visual Effects */
+.soil-moist {
+  background-color: #3b1f09 !important;
+  box-shadow: inset 0 0 10px rgba(14, 165, 233, 0.25) !important;
+}
+
+.soil-moderate {
+  background-color: #543015 !important;
+}
+
+.soil-dry {
+  background-color: #6b3e1c !important;
+}
+
+.soil-parched {
+  background-color: #78441f !important;
+  filter: contrast(1.1) brightness(0.95);
+}
+
+/* Watering Splash & Ripple Animations */
+@keyframes waterRippleEffect {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.9;
+    border-width: 4px;
+  }
+  50% {
+    opacity: 0.7;
+    border-width: 2.5px;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+.water-splash-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.75rem;
+  border: 3px solid #38bdf8;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, rgba(14, 165, 233, 0.1) 70%, transparent 100%);
+  animation: waterRippleEffect 0.85s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+  pointer-events: none;
+  z-index: 30;
+}
+
+@keyframes waterDropFlight {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(calc(var(--fly-x) * 0.5), calc(var(--fly-y) * 0.5 - 35px)) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--fly-x), var(--fly-y)) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.water-flying-droplet {
+  position: absolute;
+  pointer-events: none;
+  z-index: 45;
+  animation: waterDropFlight 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 

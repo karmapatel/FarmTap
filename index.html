@@ -353,14 +353,28 @@
                   <span class="crop-badge text-stone-300">TILLED SOIL</span>
                   <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-0.5 h-9">
                   <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
                     <span class="text-xs font-black">+</span>
                   </div>
                   <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
                 </div>
-                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                <div class="plot-moisture-row flex items-center justify-between text-[8px] font-pixel px-0.5 mt-0.5">
+                  <div class="flex items-center gap-1" title="Field Moisture">
+                    <span class="text-[9px]">💧</span>
+                    <span class="plot-moisture-text text-cyan-300 font-bold">60%</span>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); waterPlot(0);" class="btn-water-plot btn-tactile bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold px-1.5 py-0.5 rounded text-[7px] flex items-center gap-0.5 shadow-sm border border-sky-300" title="Water this field (-20 Well Water, +25% Moisture)">
+                    <span>WATER</span>
+                  </button>
+                </div>
+                <div class="flex flex-col gap-0.5 w-full mt-0.5">
+                  <div class="w-full bg-black/40 rounded-full h-1 overflow-hidden" title="Growth Progress">
+                    <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                  </div>
+                  <div class="w-full bg-black/50 rounded-full h-1 overflow-hidden" title="Soil Moisture">
+                    <div class="moisture-bar bg-sky-400 h-full" style="width: 60%;"></div>
+                  </div>
                 </div>
               </div>
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
@@ -374,14 +388,28 @@
                   <span class="crop-badge text-stone-300">TILLED SOIL</span>
                   <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-0.5 h-9">
                   <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
                     <span class="text-xs font-black">+</span>
                   </div>
                   <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
                 </div>
-                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                <div class="plot-moisture-row flex items-center justify-between text-[8px] font-pixel px-0.5 mt-0.5">
+                  <div class="flex items-center gap-1" title="Field Moisture">
+                    <span class="text-[9px]">💧</span>
+                    <span class="plot-moisture-text text-cyan-300 font-bold">60%</span>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); waterPlot(1);" class="btn-water-plot btn-tactile bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold px-1.5 py-0.5 rounded text-[7px] flex items-center gap-0.5 shadow-sm border border-sky-300" title="Water this field (-20 Well Water, +25% Moisture)">
+                    <span>WATER</span>
+                  </button>
+                </div>
+                <div class="flex flex-col gap-0.5 w-full mt-0.5">
+                  <div class="w-full bg-black/40 rounded-full h-1 overflow-hidden" title="Growth Progress">
+                    <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                  </div>
+                  <div class="w-full bg-black/50 rounded-full h-1 overflow-hidden" title="Soil Moisture">
+                    <div class="moisture-bar bg-sky-400 h-full" style="width: 60%;"></div>
+                  </div>
                 </div>
               </div>
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
@@ -395,14 +423,28 @@
                   <span class="crop-badge text-stone-300">TILLED SOIL</span>
                   <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-0.5 h-9">
                   <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
                     <span class="text-xs font-black">+</span>
                   </div>
                   <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
                 </div>
-                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                <div class="plot-moisture-row flex items-center justify-between text-[8px] font-pixel px-0.5 mt-0.5">
+                  <div class="flex items-center gap-1" title="Field Moisture">
+                    <span class="text-[9px]">💧</span>
+                    <span class="plot-moisture-text text-cyan-300 font-bold">60%</span>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); waterPlot(2);" class="btn-water-plot btn-tactile bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold px-1.5 py-0.5 rounded text-[7px] flex items-center gap-0.5 shadow-sm border border-sky-300" title="Water this field (-20 Well Water, +25% Moisture)">
+                    <span>WATER</span>
+                  </button>
+                </div>
+                <div class="flex flex-col gap-0.5 w-full mt-0.5">
+                  <div class="w-full bg-black/40 rounded-full h-1 overflow-hidden" title="Growth Progress">
+                    <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                  </div>
+                  <div class="w-full bg-black/50 rounded-full h-1 overflow-hidden" title="Soil Moisture">
+                    <div class="moisture-bar bg-sky-400 h-full" style="width: 60%;"></div>
+                  </div>
                 </div>
               </div>
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
@@ -416,14 +458,28 @@
                   <span class="crop-badge text-stone-300">TILLED SOIL</span>
                   <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-0.5 h-9">
                   <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
                     <span class="text-xs font-black">+</span>
                   </div>
                   <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
                 </div>
-                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                <div class="plot-moisture-row flex items-center justify-between text-[8px] font-pixel px-0.5 mt-0.5">
+                  <div class="flex items-center gap-1" title="Field Moisture">
+                    <span class="text-[9px]">💧</span>
+                    <span class="plot-moisture-text text-cyan-300 font-bold">60%</span>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); waterPlot(3);" class="btn-water-plot btn-tactile bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold px-1.5 py-0.5 rounded text-[7px] flex items-center gap-0.5 shadow-sm border border-sky-300" title="Water this field (-20 Well Water, +25% Moisture)">
+                    <span>WATER</span>
+                  </button>
+                </div>
+                <div class="flex flex-col gap-0.5 w-full mt-0.5">
+                  <div class="w-full bg-black/40 rounded-full h-1 overflow-hidden" title="Growth Progress">
+                    <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                  </div>
+                  <div class="w-full bg-black/50 rounded-full h-1 overflow-hidden" title="Soil Moisture">
+                    <div class="moisture-bar bg-sky-400 h-full" style="width: 60%;"></div>
+                  </div>
                 </div>
               </div>
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
@@ -437,14 +493,28 @@
                   <span class="crop-badge text-stone-300">TILLED SOIL</span>
                   <span class="crop-status text-amber-200 text-[8px]">EMPTY</span>
                 </div>
-                <div class="crop-plants-stage flex flex-col items-center justify-center my-1 h-10">
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-0.5 h-9">
                   <div class="w-7 h-7 rounded-full bg-amber-900/80 border border-dashed border-amber-400 flex items-center justify-center text-amber-200 group-hover:scale-110 transition-transform shadow">
                     <span class="text-xs font-black">+</span>
                   </div>
                   <span class="text-[8px] font-bold text-amber-300 mt-0.5">TAP TO PLANT</span>
                 </div>
-                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                <div class="plot-moisture-row flex items-center justify-between text-[8px] font-pixel px-0.5 mt-0.5">
+                  <div class="flex items-center gap-1" title="Field Moisture">
+                    <span class="text-[9px]">💧</span>
+                    <span class="plot-moisture-text text-cyan-300 font-bold">60%</span>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); waterPlot(4);" class="btn-water-plot btn-tactile bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold px-1.5 py-0.5 rounded text-[7px] flex items-center gap-0.5 shadow-sm border border-sky-300" title="Water this field (-20 Well Water, +25% Moisture)">
+                    <span>WATER</span>
+                  </button>
+                </div>
+                <div class="flex flex-col gap-0.5 w-full mt-0.5">
+                  <div class="w-full bg-black/40 rounded-full h-1 overflow-hidden" title="Growth Progress">
+                    <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                  </div>
+                  <div class="w-full bg-black/50 rounded-full h-1 overflow-hidden" title="Soil Moisture">
+                    <div class="moisture-bar bg-sky-400 h-full" style="width: 60%;"></div>
+                  </div>
                 </div>
               </div>
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
@@ -457,13 +527,27 @@
                   <span class="crop-badge text-stone-400">FIELD #6</span>
                   <span class="crop-status text-amber-300 font-bold">$2,000</span>
                 </div>
-                <div class="crop-plants-stage flex flex-col items-center justify-center my-0.5 h-10 text-center">
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-0.5 h-9 text-center">
                   <span class="text-base leading-none mb-0.5">🔒</span>
                   <span class="text-[9px] font-bold text-amber-300 leading-tight">Unlock Field #6</span>
                   <span class="text-[8px] font-pixel text-yellow-300 font-bold">$2,000 Coins</span>
                 </div>
-                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
-                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                <div class="plot-moisture-row hidden flex items-center justify-between text-[8px] font-pixel px-0.5 mt-0.5">
+                  <div class="flex items-center gap-1" title="Field Moisture">
+                    <span class="text-[9px]">💧</span>
+                    <span class="plot-moisture-text text-cyan-300 font-bold">60%</span>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); waterPlot(5);" class="btn-water-plot btn-tactile bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold px-1.5 py-0.5 rounded text-[7px] flex items-center gap-0.5 shadow-sm border border-sky-300" title="Water this field (-20 Well Water, +25% Moisture)">
+                    <span>WATER</span>
+                  </button>
+                </div>
+                <div class="flex flex-col gap-0.5 w-full mt-0.5">
+                  <div class="w-full bg-black/40 rounded-full h-1 overflow-hidden" title="Growth Progress">
+                    <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                  </div>
+                  <div class="w-full bg-black/50 rounded-full h-1 overflow-hidden hidden" title="Soil Moisture">
+                    <div class="moisture-bar bg-sky-400 h-full" style="width: 60%;"></div>
+                  </div>
                 </div>
               </div>
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
@@ -806,7 +890,7 @@
               <!-- Sugar Cane -->
               <div id="trade-sugarcane" class="bg-amber-900/90 border-2 border-amber-600 rounded-xl p-2.5 sm:p-3 flex items-center justify-between shadow-md gap-2">
                 <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-                  <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 bg-amber-700/80 border border-amber-500 rounded-lg flex items-center justify-center text-lg sm:text-xl shadow">🍬</div>
+                  <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 bg-emerald-900/80 border border-emerald-500 rounded-lg flex items-center justify-center text-lg sm:text-xl shadow">🎋</div>
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-1.5 flex-wrap">
                       <span class="font-bold text-xs sm:text-sm text-amber-100">Sugar Cane</span>
@@ -981,8 +1065,8 @@
           <!-- Sugarcane -->
           <button onclick="plantSelectedCrop('sugarcane')" class="bg-amber-900/80 hover:bg-amber-800 border border-amber-600 rounded-xl p-2 flex flex-col items-center text-center active:scale-95 transition relative">
             <span id="seed-badge-sugarcane" class="text-[8px] bg-stone-700 text-stone-300 px-1 rounded font-bold uppercase tracking-wider mb-0.5">NORMAL</span>
-            <span class="text-2xl mb-0.5">🍬</span>
-            <span class="font-bold text-xs text-pink-200">Sugar Cane</span>
+            <span class="text-2xl mb-0.5">🎋</span>
+            <span class="font-bold text-xs text-emerald-200">Sugar Cane</span>
             <span id="seed-cost-sugarcane" class="text-[9px] text-amber-300 mt-0.5 font-pixel font-bold">Cost $25</span>
             <span class="text-[8px] text-stone-300">Grows: 30s</span>
           </button>
@@ -1097,7 +1181,7 @@
             <div class="font-pixel text-xs text-amber-300 mt-0.5" id="barnInv-rice">0</div>
           </div>
           <div class="bg-amber-900/80 border border-amber-600 rounded-lg p-2 text-center">
-            <div class="text-xl">🍬</div>
+            <div class="text-xl">🎋</div>
             <div class="text-[10px] font-bold text-amber-100">Sugar Cane</div>
             <div class="font-pixel text-xs text-amber-300 mt-0.5" id="barnInv-sugarcane">0</div>
           </div>

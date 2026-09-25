@@ -97,6 +97,33 @@ export class UIManager {
     if (marketDisp) marketDisp.textContent = `$${gold}`;
   }
 
+  updateWellDisplay(wellWater) {
+    const safeWater = Math.max(0, Math.min(100, Math.round(Number(wellWater) || 0)));
+    const stockEl = document.getElementById('waterStockPct');
+    if (stockEl) {
+      stockEl.textContent = `${safeWater}%`;
+    }
+    const wellBadge = stockEl ? stockEl.closest('div') : null;
+    if (wellBadge) {
+      if (safeWater < 20) {
+        wellBadge.className = 'absolute -top-2 left-1/2 -translate-x-1/2 bg-amber-950 border border-amber-400 px-1.5 py-0.5 rounded-full text-[8px] font-bold text-amber-200 shadow animate-pulse';
+        wellBadge.innerHTML = `💧 WELL (<span id="waterStockPct">${safeWater}%</span> LOW)`;
+      } else {
+        wellBadge.className = 'absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-950 border border-blue-400 px-1.5 py-0.5 rounded-full text-[8px] font-bold text-blue-200 shadow';
+        wellBadge.innerHTML = `💧 WELL (<span id="waterStockPct">${safeWater}%</span>)`;
+      }
+    }
+    const bar = document.getElementById('waterLevelBar');
+    if (bar) {
+      const maxH = 13;
+      const h = Math.max(1, (safeWater / 100) * maxH);
+      const y = 30 + (maxH - h);
+      bar.setAttribute('height', h.toFixed(1));
+      bar.setAttribute('y', y.toFixed(1));
+      bar.setAttribute('fill', safeWater < 20 ? '#f87171' : '#60a5fa');
+    }
+  }
+
   // Update Price Change Countdown Displays
   updateClockAndCountdown(timeInfo) {
     const headerCountdownEl = document.getElementById('headerPriceCountdown');
@@ -205,7 +232,7 @@ export class UIManager {
       if (inventory && inventory.tomato > 0) crateIcons.push('🍅');
       if (inventory && inventory.potato > 0) crateIcons.push('🥔');
       if (inventory && inventory.rice > 0) crateIcons.push('🍚');
-      if (inventory && inventory.sugarcane > 0) crateIcons.push('🍬');
+      if (inventory && inventory.sugarcane > 0) crateIcons.push('🎋');
 
       cratesCluster.innerHTML = crateIcons.slice(0, 4).map(ic => 
         `<div class="w-5 h-5 bg-amber-800 border border-amber-950 rounded-sm shadow text-[10px] flex items-center justify-center">${ic}</div>`

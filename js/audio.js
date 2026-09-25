@@ -254,6 +254,36 @@ class SoundEngine {
       osc.stop(this.ctx.currentTime + 0.2);
     } catch (e) {}
   }
+
+  // Refreshing watering splash / pour sound
+  playWaterSplash() {
+    if (this.muted) return;
+    this.resumeIfNeeded();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      // Synthesize multi-droplet water splash
+      [580, 720, 880, 1100].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const delay = idx * 0.04;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + delay);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + delay + 0.08);
+
+        gain.gain.setValueAtTime(0.12, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.1);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + delay);
+        osc.stop(now + delay + 0.1);
+      });
+    } catch (e) {}
+  }
 }
 
 export const audio = new SoundEngine();

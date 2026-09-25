@@ -70,13 +70,15 @@ export const defaultState = {
     sugarcane: 25
   },
   lastHourKey: null,
+  wellWater: 100,
+  lastHourlyUpdateTimestamp: null,
   plots: [
-    { id: 0, state: 'empty', crop: null, progress: 0, timer: 0 },
-    { id: 1, state: 'empty', crop: null, progress: 0, timer: 0 },
-    { id: 2, state: 'empty', crop: null, progress: 0, timer: 0 },
-    { id: 3, state: 'empty', crop: null, progress: 0, timer: 0 },
-    { id: 4, state: 'empty', crop: null, progress: 0, timer: 0 },
-    { id: 5, state: 'locked', crop: null, progress: 0, timer: 0 }
+    { id: 0, state: 'empty', crop: null, progress: 0, timer: 0, moisture: 60 },
+    { id: 1, state: 'empty', crop: null, progress: 0, timer: 0, moisture: 60 },
+    { id: 2, state: 'empty', crop: null, progress: 0, timer: 0, moisture: 60 },
+    { id: 3, state: 'empty', crop: null, progress: 0, timer: 0, moisture: 60 },
+    { id: 4, state: 'empty', crop: null, progress: 0, timer: 0, moisture: 60 },
+    { id: 5, state: 'locked', crop: null, progress: 0, timer: 0, moisture: 60 }
   ],
   upgrades: {
     unlockedPlots: 5, // plot 0, 1, 2, 3, 4 are unlocked, 5 is locked
@@ -258,6 +260,12 @@ export const storage = {
         const cropTimes = { wheat: 10, corn: 16, tomato: 22, potato: 8, rice: 14, sugarcane: 30 };
 
         plots.forEach((p) => {
+          if (p.moisture === undefined || p.moisture === null) {
+            p.moisture = 60;
+          } else {
+            p.moisture = Math.max(0, Math.min(100, Math.round(Number(p.moisture))));
+          }
+
           if (p.state === 'growing' && p.crop) {
             const total = p.totalTime || cropTimes[p.crop] || 12;
             p.totalTime = total;
@@ -282,10 +290,15 @@ export const storage = {
         // Clean and sanitize inventory so no ghost or null keys persist, and 0s are preserved
         const cleanInv = sanitizeInventory(parsed.inventory !== undefined ? parsed.inventory : defaultState.inventory);
 
+        const loadedWellWater = (parsed && parsed.wellWater !== undefined && parsed.wellWater !== null)
+          ? Math.max(0, Math.min(100, Math.round(Number(parsed.wellWater))))
+          : 100;
+
         // Deep merge with defaults so new fields are never undefined
         const mergedState = {
           ...defaultState,
           ...parsed,
+          wellWater: loadedWellWater,
           inventory: cleanInv,
           prices: { ...defaultState.prices, ...(parsed.prices || {}) },
           costs: { ...defaultState.costs, ...(parsed.costs || {}) },

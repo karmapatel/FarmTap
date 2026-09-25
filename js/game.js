@@ -30,13 +30,49 @@ window.addEventListener('beforeunload', () => {
 // Initialize Subsystems
 const ui = new UIManager();
 const player = new Player('playerCharacter', 'playerSpriteInner', 'playerSpeechBubble');
+
+// Ensure wellWater and plot moisture are present on state
+if (state.wellWater === undefined || state.wellWater === null) {
+  state.wellWater = 100;
+} else {
+  state.wellWater = Math.max(0, Math.min(100, Math.round(Number(state.wellWater))));
+}
+
+// Hourly Water Cycle Helper using the existing hourly clock
+export function applyHourlyWaterCycle(gameState, hoursCount = 1) {
+  if (hoursCount <= 0) return;
+  // Every real/in-game hour: field moisture -10 (min 0)
+  gameState.plots.forEach((p) => {
+    if (p.state !== 'locked') {
+      const cur = p.moisture !== undefined ? p.moisture : 60;
+      p.moisture = Math.max(0, cur - 10 * hoursCount);
+    }
+  });
+
+  // Well regenerates +10 water every real/in-game hour, capped at 100
+  const curWell = gameState.wellWater !== undefined ? gameState.wellWater : 100;
+  gameState.wellWater = Math.min(100, curWell + 10 * hoursCount);
+}
+
 const farm = new Farm(state.plots, player, (x, y, text, color) => ui.showFloatingText(x, y, text, color));
 const economy = new Economy(state.prices, state.costs, state.lastHourKey);
-// Check if hour changed while offline/closed
+
+// Check if hour changed while offline/closed (using existing hourly clock)
+const nowTimestamp = Date.now();
 if (economy.checkHourChange(state.activeEvent, state.weather)) {
   state.prices = economy.getPrices();
   state.costs = economy.getCosts();
   state.lastHourKey = economy.lastHourKey;
+
+  // Calculate elapsed hours while closed
+  let hoursPassed = 1;
+  if (state.lastHourlyUpdateTimestamp) {
+    hoursPassed = Math.max(1, Math.floor((nowTimestamp - state.lastHourlyUpdateTimestamp) / 3600000));
+  }
+  applyHourlyWaterCycle(state, hoursPassed);
+  state.lastHourlyUpdateTimestamp = nowTimestamp;
+} else if (!state.lastHourlyUpdateTimestamp) {
+  state.lastHourlyUpdateTimestamp = nowTimestamp;
 }
 
 const events = new EventSystem(state.weather, state.activeEvent);
@@ -75,6 +111,7 @@ ui.updateBarnDisplays(state.inventory, state.barnCapacity);
 ui.updateClockAndCountdown(economy.getTimeRemaining());
 ui.updateSeedModalCards(economy.getCosts(), cropConfigs);
 ui.updateTicker(economy.renderTickerHTML());
+ui.updateWellDisplay(state.wellWater);
 updateUpgradeButtonsUI();
 
 // Register Service Worker for Offline PWA
@@ -170,11 +207,13 @@ window.onPlotClick = function (plotIdx) {
       plot.progress = 0;
       plot.timer = 0;
       plot.totalTime = 0;
+      // Harvesting a crop: field moisture -5
+      plot.moisture = Math.max(0, (plot.moisture !== undefined ? plot.moisture : 60) - 5);
 
       farm.renderPlot(plotIdx);
       ui.updateBarnDisplays(state.inventory, state.barnCapacity);
       audio.playHarvest();
-      ui.showFloatingText(targetX + 30, targetY, `+1 ${crop.toUpperCase()} 🧺`, '#fde047');
+      ui.showFloatingText(targetX + 30, targetY, `+1 ${crop.toUpperCase()} 🧺 (-5% Moisture)`, '#fde047');
       storage.save(state);
     });
   } else if (plot.state === 'empty') {
@@ -188,9 +227,95 @@ window.onPlotClick = function (plotIdx) {
     player.moveTo(targetX, targetY, `Inspecting ${plot.crop}`, () => {
       audio.playStep();
       const secsLeft = Math.max(1, Math.ceil(plot.timer));
-      ui.showFloatingText(targetX + 30, targetY, `${plot.crop.toUpperCase()}: ${Math.round(plot.progress)}% (${secsLeft}s left)`, '#facc15');
+      const m = plot.moisture !== undefined ? plot.moisture : 60;
+      const mLabel = m >= 60 ? 'Good' : m >= 30 ? 'Slow' : m >= 1 ? 'Very Slow' : 'Paused';
+      ui.showFloatingText(targetX + 30, targetY, `${plot.crop.toUpperCase()}: ${Math.round(plot.progress)}% | 💧 ${m}% (${mLabel})`, '#facc15');
     });
   }
+};
+
+// 2b. Visual Watering Animation & Function
+function triggerWateringAnimation(plotIdx, targetX, targetY) {
+  const stage = document.getElementById('worldStage');
+  if (!stage) return;
+
+  // 1. Water splash expanding ripple on plot
+  const plotEl = document.getElementById(`plot-${plotIdx}`);
+  if (plotEl) {
+    const splash = document.createElement('div');
+    splash.className = 'water-splash-ring';
+    plotEl.appendChild(splash);
+    setTimeout(() => splash.remove(), 900);
+  }
+
+  // 2. Parabolic flying water droplets from Well (x=50, y=110) to Target Plot
+  const wellX = 50;
+  const wellY = 110;
+  const deltaX = targetX - wellX;
+  const deltaY = targetY - wellY;
+
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const drop = document.createElement('div');
+      drop.className = 'water-flying-droplet text-sm filter drop-shadow select-none';
+      drop.textContent = i % 2 === 0 ? '💧' : '💦';
+      drop.style.left = `${wellX + (Math.random() * 12 - 6)}px`;
+      drop.style.top = `${wellY + (Math.random() * 12 - 6)}px`;
+      drop.style.setProperty('--fly-x', `${deltaX + (Math.random() * 16 - 8)}px`);
+      drop.style.setProperty('--fly-y', `${deltaY + (Math.random() * 16 - 8)}px`);
+      stage.appendChild(drop);
+      setTimeout(() => drop.remove(), 700);
+    }, i * 60);
+  }
+}
+
+// Watering a field consumes 20 well water and adds 25 field moisture (capped at 100)
+window.waterPlot = function (plotIdx, triggeredFromWell = false) {
+  const plot = state.plots[plotIdx];
+  if (!plot || plot.state === 'locked') return;
+
+  const currentWell = state.wellWater !== undefined ? state.wellWater : 100;
+  if (currentWell < 20) {
+    audio.playError();
+    ui.showFloatingText(55, 110, `Well is Low! (${currentWell}/100💧, need 20)`, '#f87171');
+    player.speak(`Our well only has ${currentWell} water! Needs 20 water to hydrate a field.`);
+    return;
+  }
+
+  const currentMoisture = plot.moisture !== undefined ? plot.moisture : 60;
+  if (currentMoisture >= 100) {
+    audio.playStep();
+    const targetX = 145 + (plotIdx % 2) * 85;
+    const targetY = 320 + Math.floor(plotIdx / 2) * 85;
+    ui.showFloatingText(targetX + 25, targetY, `Field #${plotIdx + 1} is fully moist (100%)!`, '#60a5fa');
+    return;
+  }
+
+  // Consume 20 well water, add 25 field moisture (capped at 100)
+  state.wellWater = Math.max(0, currentWell - 20);
+  plot.moisture = Math.min(100, currentMoisture + 25);
+
+  const targetX = 145 + (plotIdx % 2) * 85;
+  const targetY = 320 + Math.floor(plotIdx / 2) * 85;
+
+  // Sound and visual animation
+  audio.playWaterSplash();
+  triggerWateringAnimation(plotIdx, targetX, targetY);
+
+  ui.showFloatingText(targetX + 30, targetY - 10, `+25% Moisture! 💧 (Now ${plot.moisture}%)`, '#38bdf8');
+  ui.showFloatingText(55, 110, `-20 Well Water 🪣 (${state.wellWater}/100 left)`, '#93c5fd');
+
+  if (!triggeredFromWell) {
+    player.moveTo(targetX, targetY, `Watering Field #${plotIdx + 1}...`, () => {
+      player.speak(`Watered Field #${plotIdx + 1}! (${plot.moisture}% moisture)`);
+    });
+  } else {
+    player.speak(`Pumping water to Field #${plotIdx + 1}! (${plot.moisture}% moisture)`);
+  }
+
+  farm.renderPlot(plotIdx);
+  ui.updateWellDisplay(state.wellWater);
+  storage.save(state);
 };
 
 // 3. Planting selected crop (Dynamic Cost Pricing)
@@ -219,6 +344,7 @@ window.plantSelectedCrop = function (cropType) {
   plot.totalTime = cfg.time;
   plot.timer = cfg.time;
   plot.progress = 0;
+  // Note: plot.moisture is permanently preserved and NOT reset!
 
   farm.renderPlot(plotIdx);
   audio.playPlant();
@@ -247,25 +373,38 @@ window.interactWith = function (type) {
       });
       break;
     case 'watertank':
-      player.moveTo(45, 120, 'Inspecting Well...', () => {
-        audio.playCoin();
-        ui.showFloatingText(55, 110, '💧 Fresh Water Boost!', '#60a5fa');
-        // Boost growing plots: accelerates timer and progress in lockstep
-        state.plots.forEach((p, idx) => {
-          if (p.state === 'growing') {
-            const totalTime = p.totalTime || cropConfigs[p.crop]?.time || 12;
-            const boostSecs = totalTime * 0.25;
-            p.timer = Math.max(0, p.timer - boostSecs);
-            p.progress = Math.min(100, Math.max(0, ((totalTime - p.timer) / totalTime) * 100));
-            if (p.timer <= 0) {
-              p.state = 'mature';
-              p.progress = 100;
-              p.timer = 0;
-            }
-            farm.renderPlot(idx);
-          }
-        });
-        storage.save(state);
+      player.moveTo(45, 120, 'At the Well...', () => {
+        const currentWell = state.wellWater !== undefined ? state.wellWater : 100;
+
+        // Check if well has enough water
+        if (currentWell < 20) {
+          audio.playError();
+          ui.showFloatingText(55, 110, `Well is Low! (${currentWell}/100💧)`, '#f87171');
+          player.speak(`The well only has ${currentWell} water. It recovers +10 water every hour.`);
+          return;
+        }
+
+        // Find the driest unlocked field to water
+        const unlockedPlots = state.plots
+          .map((p, idx) => ({ plot: p, idx }))
+          .filter(item => item.plot && item.plot.state !== 'locked');
+
+        if (unlockedPlots.length === 0) return;
+
+        // Sort by moisture ascending (lowest moisture first)
+        unlockedPlots.sort((a, b) => (a.plot.moisture ?? 60) - (b.plot.moisture ?? 60));
+        const driest = unlockedPlots[0];
+        const driestMoisture = driest.plot.moisture ?? 60;
+
+        if (driestMoisture >= 100) {
+          audio.playStep();
+          ui.showFloatingText(55, 110, `All Fields Moist! (${currentWell}/100💧)`, '#38bdf8');
+          player.speak(`All fields are fully saturated at 100% moisture! Well water: ${currentWell}/100.`);
+          return;
+        }
+
+        // Water the driest field
+        window.waterPlot(driest.idx, true);
       });
       break;
   }
@@ -370,7 +509,7 @@ window.confirmUnlockPlot = function (plotId) {
   }
 
   state.gold -= UNLOCK_PLOT_COST;
-  state.plots[plotId] = { id: plotId, state: 'empty', crop: null, progress: 0, timer: 0 };
+  state.plots[plotId] = { id: plotId, state: 'empty', crop: null, progress: 0, timer: 0, moisture: 60 };
   state.upgrades.unlockedPlots = Math.max(state.upgrades.unlockedPlots, plotId + 1);
 
   farm.renderPlot(plotId);
@@ -379,7 +518,7 @@ window.confirmUnlockPlot = function (plotId) {
   ui.closeModal('unlockPlotModal');
   ui.closeModal('farmhouseModal');
   audio.playUpgrade();
-  ui.showFloatingText(targetX + 30, targetY, `Plot #${plotId + 1} Cleared for Planting! 🌾`, '#34d399');
+  ui.showFloatingText(targetX + 30, targetY, `Plot #${plotId + 1} Cleared for Planting! 🌾 (60% Moisture)`, '#34d399');
   player.speak(`Field #${plotId + 1} is cleared and ready to plant!`);
   storage.save(state);
 };
@@ -415,13 +554,13 @@ window.buyWellUpgrade = function () {
 
   state.gold -= 300;
   state.upgrades.autoIrrigation = true;
-  const wellBadge = document.getElementById('waterStockPct');
-  if (wellBadge) wellBadge.textContent = '100%';
+  state.wellWater = 100;
+  ui.updateWellDisplay(state.wellWater);
   ui.updateGoldDisplays(state.gold);
   updateUpgradeButtonsUI();
   ui.closeModal('farmhouseModal');
   audio.playUpgrade();
-  ui.showFloatingText(50, 100, 'Irrigation System Online! 💧', '#38bdf8');
+  ui.showFloatingText(50, 100, 'Irrigation Online & Well Refilled! 💧', '#38bdf8');
   storage.save(state);
 };
 
@@ -511,6 +650,12 @@ window.triggerHourlyPriceShift = function () {
   state.prices = economy.getPrices();
   state.costs = economy.getCosts();
   state.lastHourKey = economy.lastHourKey;
+  state.lastHourlyUpdateTimestamp = Date.now();
+
+  // Hourly water cycle: each field -10 moisture, well +10 water
+  applyHourlyWaterCycle(state, 1);
+  farm.renderAllPlots();
+  ui.updateWellDisplay(state.wellWater);
 
   // Town bell chime
   audio.playBell();
@@ -519,10 +664,10 @@ window.triggerHourlyPriceShift = function () {
   ui.showFloatingText(
     Math.max(20, window.innerWidth / 2 - 120),
     80,
-    '🔔 Hourly Price Change: New Crop Prices!',
-    '#facc15'
+    '🔔 Hourly Shift: Well +10💧 | Fields -10% Moisture',
+    '#38bdf8'
   );
-  player.speak('New hourly crop prices are here!');
+  player.speak('New hour! Well recovered +10 water, fields lost 10% moisture.');
 
   const timeInfo = economy.getTimeRemaining();
   ui.updateClockAndCountdown(timeInfo);
@@ -548,14 +693,21 @@ setInterval(() => {
     state.prices = economy.getPrices();
     state.costs = economy.getCosts();
     state.lastHourKey = economy.lastHourKey;
+    state.lastHourlyUpdateTimestamp = Date.now();
+
+    // Hourly water cycle: each field -10 moisture, well +10 water
+    applyHourlyWaterCycle(state, 1);
+    farm.renderAllPlots();
+    ui.updateWellDisplay(state.wellWater);
+
     audio.playBell();
     ui.showFloatingText(
       Math.max(20, window.innerWidth / 2 - 120),
       80,
-      '🔔 New Hourly Prices Are In!',
-      '#facc15'
+      '🔔 Hourly Shift: Well +10💧 | Fields -10% Moisture',
+      '#38bdf8'
     );
-    player.speak('Prices changed for the new hour!');
+    player.speak('A new hour has arrived! Well gained +10 water, fields lost 10% moisture.');
     ui.updateSeedModalCards(state.costs, cropConfigs);
     ui.updateTicker(economy.renderTickerHTML());
     storage.save(state);
