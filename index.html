@@ -450,12 +450,21 @@
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
             </div>
 
-            <!-- PLOT 5: Locked Expansion Plot (Upgradable in Farmhouse) -->
-            <div id="plot-5" class="crop-plot relative bg-[#3d230e]/70 border-2 border-dashed border-stone-600 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]" onclick="interactWith('farmhouse')">
-              <div class="relative z-10 flex flex-col items-center justify-center h-full min-h-[82px] text-center">
-                <span class="text-base mb-1">🔒</span>
-                <span class="text-[9px] font-bold text-amber-300/90">FIELD EXPANSION</span>
-                <span class="text-[8px] text-stone-400 mt-0.5">Unlock in Farmhouse</span>
+            <!-- PLOT 5: 6th Cropping Field (Unlocked directly for 2,000 Coins) -->
+            <div id="plot-5" class="crop-plot relative bg-[#3d230e]/70 border-2 border-dashed border-amber-600/60 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-300 transition-all group min-h-[92px]" onclick="onPlotClick(5)">
+              <div class="relative z-10 flex flex-col justify-between h-full min-h-[82px]">
+                <div class="flex items-center justify-between text-[8px] font-pixel">
+                  <span class="crop-badge text-stone-400">FIELD #6</span>
+                  <span class="crop-status text-amber-300 font-bold">$2,000</span>
+                </div>
+                <div class="crop-plants-stage flex flex-col items-center justify-center my-0.5 h-10 text-center">
+                  <span class="text-base leading-none mb-0.5">🔒</span>
+                  <span class="text-[9px] font-bold text-amber-300 leading-tight">Unlock Field #6</span>
+                  <span class="text-[8px] font-pixel text-yellow-300 font-bold">$2,000 Coins</span>
+                </div>
+                <div class="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
+                  <div class="crop-prog-bar bg-stone-500 h-full w-0" style="width: 0%;"></div>
+                </div>
               </div>
               <div class="pulse-ring hidden absolute inset-0 border-2 border-yellow-300 rounded-xl pointer-events-none"></div>
             </div>
@@ -997,20 +1006,7 @@
         </div>
 
         <div class="space-y-2.5 sm:space-y-3">
-          <!-- Upgrade 1: Unlock Plot 5 -->
-          <div class="bg-amber-900/70 border border-amber-600 rounded-xl p-2.5 sm:p-3 flex items-center justify-between gap-2">
-            <div class="min-w-0 flex-1">
-              <div class="font-bold text-xs text-amber-100 flex items-center gap-1.5">
-                <span>🌾</span> <span>Clear Loam Plot #6</span>
-              </div>
-              <div class="text-[9px] sm:text-[10px] text-amber-300 mt-0.5">Adds an additional active crop bed on your farm.</div>
-            </div>
-            <button id="btnUpgradePlot" onclick="buyPlotUpgrade(5)" class="btn-tactile bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow border border-emerald-400 shrink-0">
-              $150
-            </button>
-          </div>
-
-          <!-- Upgrade 2: Barn Expansion -->
+          <!-- Upgrade 1: Barn Expansion -->
           <div class="bg-amber-900/70 border border-amber-600 rounded-xl p-2.5 sm:p-3 flex items-center justify-between gap-2">
             <div class="min-w-0 flex-1">
               <div class="font-bold text-xs text-amber-100 flex items-center gap-1.5">
@@ -1114,6 +1110,49 @@
           <button onclick="closeModal('barnModal'); switchScene('market');" class="btn-tactile flex-1 bg-amber-600 hover:bg-amber-500 text-amber-950 font-bold py-2 rounded-xl text-xs border border-amber-300 flex items-center justify-center gap-1 shadow">
             <span>GO TO MARKET ➔</span>
           </button>
+        </div>
+      </div>
+
+
+      <!-- ============================================================= -->
+      <!-- UNLOCK CROPPING FIELD #6 MODAL (2,000 COINS DIRECT UNLOCK) -->
+      <!-- ============================================================= -->
+      <div id="unlockPlotModal" class="game-modal hidden-modal fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div class="bg-amber-950/95 border-2 border-amber-500 rounded-2xl p-4 sm:p-5 shadow-2xl max-w-sm w-full text-center relative">
+          <button onclick="closeModal('unlockPlotModal')" class="absolute top-2.5 right-3 text-amber-400 hover:text-white text-base font-bold">✕</button>
+          
+          <div class="w-12 h-12 rounded-full bg-amber-900/90 border-2 border-amber-400 mx-auto flex items-center justify-center text-2xl shadow-lg mb-2">
+            🌾
+          </div>
+          <h3 class="font-brand font-bold text-base text-amber-100 mb-1">Unlock Cropping Field #6</h3>
+          <p class="text-xs text-amber-200/90 mb-3 leading-relaxed">
+            Expand your farmland with a 6th planting bed to cultivate more produce and boost your harvest capacity!
+          </p>
+          
+          <div class="bg-amber-900/60 border border-amber-700/80 rounded-xl p-2.5 mb-3 flex items-center justify-around">
+            <div>
+              <div class="text-[9px] text-amber-300 font-bold uppercase">Unlock Cost</div>
+              <div class="font-pixel text-yellow-300 text-xs sm:text-sm font-bold mt-0.5">🪙 2,000 Coins</div>
+            </div>
+            <div class="h-6 w-px bg-amber-700/60"></div>
+            <div>
+              <div class="text-[9px] text-amber-300 font-bold uppercase">Your Coins</div>
+              <div id="unlockModalCurrentCoins" class="font-pixel text-emerald-400 text-xs sm:text-sm font-bold mt-0.5">$0</div>
+            </div>
+          </div>
+
+          <div id="unlockFieldMsg" class="text-[11px] font-bold text-rose-400 mb-3 hidden">
+            You need more coins to unlock this field!
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="closeModal('unlockPlotModal')" class="flex-1 bg-stone-700 hover:bg-stone-600 text-stone-200 font-bold py-2 rounded-xl text-xs border border-stone-500">
+              Not Now
+            </button>
+            <button id="btnConfirmUnlockPlot" onclick="confirmUnlockPlot(5)" class="btn-tactile flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs border border-emerald-400 shadow">
+              Unlock ($2,000)
+            </button>
+          </div>
         </div>
       </div>
 

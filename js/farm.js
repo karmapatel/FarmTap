@@ -25,19 +25,20 @@ export class Farm {
     const pulseRing = el.querySelector('.pulse-ring');
 
     if (plot.state === 'locked') {
-      el.className = 'crop-plot relative bg-[#3d230e]/70 border-2 border-dashed border-stone-600 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-400 transition-all group min-h-[92px]';
+      el.className = 'crop-plot relative bg-[#3d230e]/70 border-2 border-dashed border-amber-600/60 rounded-xl p-1.5 shadow-inner cursor-pointer hover:border-amber-300 transition-all group min-h-[92px]';
       if (plantsStage) {
         plantsStage.innerHTML = `
-          <div class="flex flex-col items-center justify-center my-1 h-10 text-center">
-            <span class="text-base mb-0.5">🔒</span>
-            <span class="text-[8px] text-stone-400">Unlock in Farmhouse</span>
+          <div class="flex flex-col items-center justify-center my-0.5 h-10 text-center">
+            <span class="text-base leading-none mb-0.5">🔒</span>
+            <span class="text-[9px] font-bold text-amber-300 leading-tight">Unlock Field #6</span>
+            <span class="text-[8px] font-pixel text-yellow-300 font-bold">$2,000 Coins</span>
           </div>
         `;
       }
-      if (badge) badge.textContent = 'FIELD EXPANSION';
+      if (badge) badge.textContent = 'FIELD #6';
       if (status) {
-        status.className = 'crop-status text-stone-400 text-[8px]';
-        status.textContent = 'LOCKED';
+        status.className = 'crop-status text-amber-300 font-bold text-[8px] font-pixel';
+        status.textContent = '$2,000';
       }
       if (progBar) progBar.style.width = '0%';
       if (pulseRing) pulseRing.classList.add('hidden');

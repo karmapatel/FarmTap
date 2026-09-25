@@ -126,7 +126,7 @@ window.onPlotClick = function (plotIdx) {
   const targetY = 320 + Math.floor(plotIdx / 2) * 85;
 
   if (plot.state === 'locked') {
-    window.interactWith('farmhouse');
+    window.promptUnlockPlot(plotIdx);
     return;
   }
 
@@ -314,26 +314,78 @@ window.cycleWeather = function () {
   storage.save(state);
 };
 
-// 8. Farmhouse Upgrades
-window.buyPlotUpgrade = function (plotId) {
-  const cost = plotId === 5 ? 150 : 250;
-  if (state.gold < cost) {
+// 8. Field Unlocks & Farmhouse Upgrades
+const UNLOCK_PLOT_COST = 2000;
+
+window.promptUnlockPlot = function (plotIdx) {
+  const targetX = 145 + (plotIdx % 2) * 85;
+  const targetY = 320 + Math.floor(plotIdx / 2) * 85;
+
+  player.moveTo(targetX, targetY, 'Examining Locked Field...', () => {
+    const modal = document.getElementById('unlockPlotModal');
+    const balEl = document.getElementById('unlockModalCurrentCoins');
+    const msgEl = document.getElementById('unlockFieldMsg');
+    const btnConfirm = document.getElementById('btnConfirmUnlockPlot');
+
+    if (balEl) balEl.textContent = `$${state.gold}`;
+
+    if (state.gold < UNLOCK_PLOT_COST) {
+      if (msgEl) {
+        msgEl.textContent = `You need $${UNLOCK_PLOT_COST - state.gold} more coins to unlock this field!`;
+        msgEl.classList.remove('hidden');
+      }
+      if (btnConfirm) {
+        btnConfirm.textContent = `Need $${UNLOCK_PLOT_COST} Coins`;
+        btnConfirm.className = 'flex-1 bg-stone-700 text-stone-400 font-bold py-2 rounded-xl text-xs border border-stone-600 cursor-not-allowed';
+        btnConfirm.disabled = true;
+      }
+    } else {
+      if (msgEl) {
+        msgEl.classList.add('hidden');
+      }
+      if (btnConfirm) {
+        btnConfirm.textContent = `Unlock ($${UNLOCK_PLOT_COST})`;
+        btnConfirm.className = 'btn-tactile flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs border border-emerald-400 shadow';
+        btnConfirm.disabled = false;
+      }
+    }
+
+    if (modal) {
+      ui.openModal('unlockPlotModal');
+    } else {
+      window.confirmUnlockPlot(plotIdx);
+    }
+  });
+};
+
+window.confirmUnlockPlot = function (plotId) {
+  const targetX = 145 + (plotId % 2) * 85;
+  const targetY = 320 + Math.floor(plotId / 2) * 85;
+
+  if (state.gold < UNLOCK_PLOT_COST) {
     audio.playError();
-    ui.showFloatingText(180, 200, `Need $${cost}!`, '#f87171');
+    ui.showFloatingText(targetX + 30, targetY, `Need $${UNLOCK_PLOT_COST} coins! (Have $${state.gold})`, '#f87171');
+    player.speak(`I need ${UNLOCK_PLOT_COST} coins to unlock this field!`);
     return;
   }
 
-  state.gold -= cost;
+  state.gold -= UNLOCK_PLOT_COST;
   state.plots[plotId] = { id: plotId, state: 'empty', crop: null, progress: 0, timer: 0 };
   state.upgrades.unlockedPlots = Math.max(state.upgrades.unlockedPlots, plotId + 1);
 
   farm.renderPlot(plotId);
   ui.updateGoldDisplays(state.gold);
   updateUpgradeButtonsUI();
+  ui.closeModal('unlockPlotModal');
   ui.closeModal('farmhouseModal');
   audio.playUpgrade();
-  ui.showFloatingText(200, 350, `Plot #${plotId + 1} Cleared for Planting! 🌾`, '#34d399');
+  ui.showFloatingText(targetX + 30, targetY, `Plot #${plotId + 1} Cleared for Planting! 🌾`, '#34d399');
+  player.speak(`Field #${plotId + 1} is cleared and ready to plant!`);
   storage.save(state);
+};
+
+window.buyPlotUpgrade = function (plotId) {
+  window.confirmUnlockPlot(plotId);
 };
 
 window.buyBarnUpgrade = function () {
