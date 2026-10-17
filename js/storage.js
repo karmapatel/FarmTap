@@ -267,8 +267,24 @@ export const storage = {
 
   async load() {
     try {
-      // 1. Attempt to load from IndexedDB
-      let saved = await idbGet(SAVE_KEY);
+      let saved = null;
+
+      // 1. Check synchronous localStorage backup first (fastest & most resilient against page refreshes)
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const rawLocal = localStorage.getItem('ticker_tape_crops_save_v2') || localStorage.getItem('ticker_tape_crops_save_v1');
+          if (rawLocal) {
+            saved = JSON.parse(rawLocal);
+          }
+        } catch (e) {
+          console.warn('localStorage read error:', e);
+        }
+      }
+
+      // 2. Fallback to IndexedDB if localStorage is empty
+      if (!saved) {
+        saved = await idbGet(SAVE_KEY);
+      }
 
       // Dedicated well water check from localStorage
       let dedicatedWellWater = null;
@@ -282,22 +298,6 @@ export const storage = {
             }
           }
         } catch (_) {}
-      }
-
-      // 2. Also check synchronous localStorage backup in case of recent reload or uncompleted async write
-      if (typeof localStorage !== 'undefined') {
-        try {
-          const rawLocal = localStorage.getItem('ticker_tape_crops_save_v2') || localStorage.getItem('ticker_tape_crops_save_v1');
-          if (rawLocal) {
-            const parsedLocal = JSON.parse(rawLocal);
-            // If localStorage is newer than IndexedDB save, prioritize localStorage
-            if (!saved || (parsedLocal && parsedLocal.timestamp && (!saved.timestamp || parsedLocal.timestamp >= saved.timestamp))) {
-              saved = parsedLocal;
-            }
-          }
-        } catch (e) {
-          console.warn('localStorage read error:', e);
-        }
       }
 
       if (saved) {
@@ -373,7 +373,7 @@ export const storage = {
             coop: { owned: true, capacity: 4 } // Starter coop is always ready for hens
           },
           animals: {
-            chickens: chickensList,
+            chickens: Array.isArray(parsed.animals?.chickens) ? parsed.animals.chickens : [],
             cows: Array.isArray(parsed.animals?.cows) ? parsed.animals.cows : []
           },
           feedInventory: { ...defaultState.feedInventory, ...(parsed.feedInventory || {}) },
