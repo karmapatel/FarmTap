@@ -30,9 +30,9 @@ export class Player {
   moveTo(targetX, targetY, actionMsg = null, onArrival = null) {
     if (!this.el) return;
 
-    // Constrain within canonical farm stage bounds (500x680)
+    // Constrain within canonical farm stage bounds (500x1040)
     const clampedX = Math.max(15, Math.min(450, targetX));
-    const clampedY = Math.max(80, Math.min(630, targetY));
+    const clampedY = Math.max(80, Math.min(980, targetY));
 
     const distance = Math.hypot(clampedX - this.x, clampedY - this.y);
     const duration = Math.max(250, (distance / 0.45) / this.speedMultiplier);

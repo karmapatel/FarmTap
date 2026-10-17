@@ -7,9 +7,14 @@ import { Economy } from './economy.js';
 import { Market } from './market.js';
 import { EventSystem } from './events.js';
 import { UIManager } from './ui.js';
+import { LivestockManager, ANIMAL_CONFIGS, HOUSING_CONFIGS, FEED_CONFIGS, processLivestockHourlyCycle } from './animals.js';
 
 // Initialize Game State from IndexedDB
 const state = await storage.load();
+if (state.gold < 1000) {
+  state.gold = 1000;
+  storage.save(state);
+}
 
 // Request PWA Persistent Storage to prevent eviction
 storage.requestPersistentStorage();
@@ -65,6 +70,7 @@ export function applyHourlyWaterCycle(gameState, hoursCount = 1) {
 }
 
 const farm = new Farm(state.plots, player, (x, y, text, color) => ui.showFloatingText(x, y, text, color));
+const livestockManager = new LivestockManager(state, (x, y, text, color) => ui.showFloatingText(x, y, text, color), audio);
 const economy = new Economy(state.prices, state.costs, state.lastHourKey);
 state.lastHourKey = economy.lastHourKey;
 
@@ -81,6 +87,7 @@ if (economy.checkHourChange(state.activeEvent, state.weather)) {
     hoursPassed = Math.max(1, Math.floor((nowTimestamp - state.lastHourlyUpdateTimestamp) / 3600000));
   }
   applyHourlyWaterCycle(state, hoursPassed);
+  livestockManager.processHourlyCycle(hoursPassed);
   state.lastHourlyUpdateTimestamp = nowTimestamp;
   storage.save(state);
 } else if (!state.lastHourlyUpdateTimestamp) {
@@ -121,6 +128,7 @@ events.applyWeatherToDOM();
 farm.renderAllPlots();
 ui.updateGoldDisplays(state.gold);
 ui.updateBarnDisplays(state.inventory, state.barnCapacity);
+ui.updateLivestockUI(state);
 ui.updateClockAndCountdown(economy.getTimeRemaining());
 ui.updateSeedModalCards(economy.getCosts(), cropConfigs);
 ui.updateTicker(economy.renderTickerHTML());
@@ -161,9 +169,9 @@ if (farmGround) {
 }
 
 export function getBarnTotalCount(inventory) {
-  const validCrops = ['wheat', 'corn', 'tomato', 'potato', 'rice', 'sugarcane'];
-  return validCrops.reduce((sum, cropId) => {
-    const val = Number(inventory && inventory[cropId]);
+  const validItems = ['wheat', 'corn', 'tomato', 'potato', 'rice', 'sugarcane', 'eggs', 'milk'];
+  return validItems.reduce((sum, itemId) => {
+    const val = Number(inventory && inventory[itemId]);
     return sum + (Number.isFinite(val) && val > 0 ? Math.floor(val) : 0);
   }, 0);
 }
@@ -426,21 +434,53 @@ window.interactWith = function (type) {
         window.waterPlot(driest.idx, true);
       });
       break;
+    case 'coop':
+      player.moveTo(330, 110, 'Checking Chicken Coop...', () => {
+        ui.updateLivestockUI(state);
+        ui.openModal('coopModal');
+      });
+      break;
+    case 'livestockBarn':
+      player.moveTo(200, 740, 'Checking Cow Barn...', () => {
+        ui.updateLivestockUI(state);
+        ui.openModal('livestockBarnModal');
+      });
+      break;
   }
 };
 
 // 5. Travel between Farm and Town Market
 window.switchScene = function (sceneName) {
   const marketScene = document.getElementById('marketScene');
+  const topHud = document.getElementById('topHudOverlay');
+  const marketBtn = document.getElementById('btnHeaderMarket');
   if (!marketScene) return;
 
   if (sceneName === 'market') {
+    ui.updateGoldDisplays(state.gold);
+    ui.updateLivestockUI(state);
     player.moveTo(310, 260, 'Walking to Market...', () => {
       marketScene.classList.remove('hidden');
+      if (topHud) topHud.classList.remove('hidden');
+      if (marketBtn) {
+        marketBtn.innerHTML = '<span>⬅ FARM</span>';
+        marketBtn.className = 'btn-tactile bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[11px] shadow border border-emerald-300 flex items-center gap-1 pointer-events-auto';
+        marketBtn.onclick = () => switchScene('farm');
+      }
+      ui.updateGoldDisplays(state.gold);
+      ui.updateLivestockUI(state);
       market.updateMarketUI(events.getEvent());
     });
   } else {
     marketScene.classList.add('hidden');
+    if (topHud) topHud.classList.remove('hidden');
+    if (marketBtn) {
+      marketBtn.innerHTML = '<span>MARKET</span> <span class="text-[10px] sm:text-xs">➔</span>';
+      marketBtn.className = 'btn-tactile bg-amber-600 hover:bg-amber-500 text-amber-950 font-black px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[11px] shadow border border-amber-300 flex items-center gap-1 pointer-events-auto';
+      marketBtn.onclick = () => switchScene('market');
+    }
+    ui.updateGoldDisplays(state.gold);
+    ui.updateLivestockUI(state);
     player.moveTo(230, 310, 'Back at Farm!');
   }
 };
@@ -461,6 +501,268 @@ window.sellAllCropsFromBarn = function () {
 
 window.highlightBuyer = function (cropId) {
   market.highlightBuyer(cropId);
+};
+
+// 7. Livestock & Housing Actions
+window.interactWithCoop = function () {
+  window.interactWith('coop');
+};
+
+window.interactWithLivestockBarn = function () {
+  window.interactWith('livestockBarn');
+};
+
+window.openHousingModal = function (type) {
+  if (type === 'chicken') {
+    window.interactWith('coop');
+  } else if (type === 'cow') {
+    window.interactWith('livestockBarn');
+  }
+};
+
+window.buyHousing = function (type) {
+  const cfg = HOUSING_CONFIGS[type];
+  if (!cfg) return;
+
+  if (state.housing[type]?.owned) {
+    ui.showFloatingText(250, 200, 'Already Owned!', '#facc15');
+    return;
+  }
+
+  const currentGold = Math.max(0, Math.floor(Number(state.gold) || 0));
+  if (currentGold < cfg.cost) {
+    audio.playError();
+    ui.showFloatingText(250, 200, `Need $${cfg.cost}! (Have $${currentGold})`, '#f87171');
+    player.speak(`I need $${cfg.cost} coins to build the ${cfg.name}! Currently have $${currentGold}.`);
+    return;
+  }
+
+  state.gold = currentGold - cfg.cost;
+  if (!state.housing[type]) state.housing[type] = {};
+  state.housing[type].owned = true;
+  audio.playUpgrade();
+  ui.showFloatingText(250, 200, `${cfg.name} Constructed! 🔨`, '#34d399');
+  player.speak(`${cfg.name} is now built! We can house animals here.`);
+
+  ui.updateGoldDisplays(state.gold);
+  ui.updateLivestockUI(state);
+  storage.save(state);
+};
+
+window.buyAnimal = function (animalType) {
+  const cfg = ANIMAL_CONFIGS[animalType];
+  if (!cfg) return;
+
+  // Starter Chicken Coop is always ready for hens
+  if (animalType === 'chicken' && (!state.housing.coop || !state.housing.coop.owned)) {
+    state.housing.coop = { owned: true, capacity: 4 };
+  }
+
+  const housing = state.housing[cfg.housingType];
+  if (!housing || !housing.owned) {
+    audio.playError();
+    ui.showFloatingText(250, 200, `Build ${cfg.housingType === 'chicken' ? 'Coop' : 'Barn'} First!`, '#f87171');
+    player.speak(`We need a ${cfg.housingType === 'chicken' ? 'Chicken Coop' : 'Livestock Barn'} first!`);
+    return;
+  }
+
+  // Ensure state.animals arrays exist
+  if (!state.animals) state.animals = { chickens: [], cows: [] };
+  if (!Array.isArray(state.animals.chickens)) state.animals.chickens = [];
+  if (!Array.isArray(state.animals.cows)) state.animals.cows = [];
+
+  const animalList = animalType === 'chicken' ? state.animals.chickens : state.animals.cows;
+  const maxCap = HOUSING_CONFIGS[cfg.housingType]?.capacity || (animalType === 'chicken' ? 4 : 3);
+
+  if (animalList.length >= maxCap) {
+    audio.playError();
+    ui.showFloatingText(250, 200, `${cfg.housingType === 'chicken' ? 'Coop' : 'Barn'} Full! (${maxCap}/${maxCap})`, '#f87171');
+    player.speak(`Housing is full! Max ${maxCap} ${animalType === 'chicken' ? 'hens' : 'cows'}.`);
+    return;
+  }
+
+  const currentGold = Math.max(0, Math.floor(Number(state.gold) || 0));
+  if (currentGold < cfg.cost) {
+    audio.playError();
+    ui.showFloatingText(250, 200, `Need $${cfg.cost}! (Have $${currentGold})`, '#f87171');
+    player.speak(`I need $${cfg.cost} to buy a ${cfg.name}! Currently have $${currentGold}.`);
+    return;
+  }
+
+  // Deduct gold
+  state.gold = currentGold - cfg.cost;
+
+  // Add new animal object with initial full hunger and care
+  animalList.push({
+    hunger: 100,
+    care: 100,
+    uncollected: 0
+  });
+
+  audio.playHarvest();
+  ui.showFloatingText(250, 200, `+1 ${cfg.name} Welcomed! (${animalList.length}/${maxCap}) ${cfg.icon}`, '#34d399');
+  player.speak(`Welcomed a new ${cfg.name} to the farm!`);
+
+  ui.updateGoldDisplays(state.gold);
+  ui.updateLivestockUI(state);
+  market.updateMarketUI();
+  storage.save(state);
+};
+
+window.buyFeed = function (animalType, qty = 5) {
+  let feedKey = animalType;
+  if (animalType === 'chickenFeed') feedKey = 'chicken';
+  if (animalType === 'cowFeed') feedKey = 'cow';
+  const feedCfg = FEED_CONFIGS[feedKey];
+  if (!feedCfg) return;
+
+  const feedId = feedCfg.id;
+  const currentFeedCost = state.costs && state.costs[feedId] !== undefined ? state.costs[feedId] : (economy ? economy.getCost(feedId) : (feedCfg.baseCost || 30));
+
+  const currentGold = Math.max(0, Math.floor(Number(state.gold) || 0));
+  if (currentGold < currentFeedCost) {
+    audio.playError();
+    ui.showFloatingText(250, 200, `Need $${currentFeedCost}! (Have $${currentGold})`, '#f87171');
+    player.speak(`I need $${currentFeedCost} to buy ${feedCfg.name}! Currently have $${currentGold}.`);
+    return;
+  }
+
+  state.gold = currentGold - currentFeedCost;
+  if (!state.feedInventory) state.feedInventory = { chickenFeed: 0, cowFeed: 0 };
+  state.feedInventory[feedId] = (state.feedInventory[feedId] || 0) + feedCfg.unitsPerPurchase;
+
+  audio.playHarvest();
+  ui.showFloatingText(250, 200, `+${feedCfg.unitsPerPurchase} ${feedCfg.name} Purchased! 🌾`, '#fde047');
+  player.speak(`Purchased ${feedCfg.unitsPerPurchase} ${feedCfg.name} for $${currentFeedCost}!`);
+
+  ui.updateGoldDisplays(state.gold);
+  ui.updateLivestockUI(state);
+  market.updateMarketUI();
+  storage.save(state);
+};
+
+window.feedAnimals = function (animalType) {
+  const cfg = ANIMAL_CONFIGS[animalType];
+  if (!cfg) return;
+
+  if (!state.animals) state.animals = { chickens: [], cows: [] };
+  if (!Array.isArray(state.animals.chickens)) state.animals.chickens = [];
+  if (!Array.isArray(state.animals.cows)) state.animals.cows = [];
+
+  const animalList = animalType === 'chicken' ? state.animals.chickens : state.animals.cows;
+  const pluralName = animalType === 'chicken' ? 'Hens' : 'Cows';
+
+  if (animalList.length <= 0) {
+    audio.playError();
+    ui.showFloatingText(250, 200, `No ${pluralName} to feed!`, '#f87171');
+    return;
+  }
+
+  const feedType = cfg.feedType;
+  if (!state.feedInventory) state.feedInventory = { chickenFeed: 0, cowFeed: 0 };
+  const currentFeed = Math.max(0, Math.floor(Number(state.feedInventory[feedType]) || 0));
+
+  if (currentFeed <= 0) {
+    audio.playError();
+    ui.showFloatingText(250, 200, `No ${cfg.feedName} in stock!`, '#f87171');
+    player.speak(`Out of feed! Buy feed from the market or housing panel.`);
+    return;
+  }
+
+  state.feedInventory[feedType] = Math.max(0, currentFeed - 1);
+  animalList.forEach((a) => {
+    a.hunger = Math.min(100, (a.hunger || 50) + 40);
+    a.care = Math.min(100, (a.care || 50) + 25);
+  });
+
+  audio.playStep();
+  ui.showFloatingText(250, 200, `${pluralName} Fed & Happy! ${cfg.icon}`, '#34d399');
+  player.speak(`Fed the ${pluralName}! Care and feed level improved.`);
+
+  ui.updateLivestockUI(state);
+  storage.save(state);
+};
+
+window.collectEggs = function () {
+  if (!state.animals) state.animals = { chickens: [], cows: [] };
+  if (!Array.isArray(state.animals.chickens)) state.animals.chickens = [];
+
+  const totalUncollected = state.animals.chickens.reduce((sum, c) => sum + (c.uncollected || 0), 0);
+  if (totalUncollected <= 0) {
+    audio.playError();
+    ui.showFloatingText(330, 110, 'No Eggs to Collect!', '#f87171');
+    return;
+  }
+
+  const currentStored = getBarnTotalCount(state.inventory);
+  if (currentStored >= state.barnCapacity) {
+    audio.playError();
+    ui.showFloatingText(330, 110, 'Barn Full! Sell items first', '#f87171');
+    player.speak('Barn storage is full! Sell crops or products at the market.');
+    return;
+  }
+
+  const availableSpace = Math.max(0, state.barnCapacity - currentStored);
+  const collected = Math.min(totalUncollected, availableSpace);
+
+  let remainingToDeduct = collected;
+  for (const c of state.animals.chickens) {
+    if (remainingToDeduct <= 0) break;
+    const deduct = Math.min(c.uncollected || 0, remainingToDeduct);
+    c.uncollected = (c.uncollected || 0) - deduct;
+    remainingToDeduct -= deduct;
+  }
+
+  state.inventory.eggs = (state.inventory.eggs || 0) + collected;
+
+  audio.playHarvest();
+  ui.showFloatingText(330, 110, `Collected +${collected} Fresh Eggs! 🥚`, '#fde047');
+  player.speak(`Collected ${collected} fresh eggs! Stored in barn.`);
+
+  ui.updateBarnDisplays(state.inventory, state.barnCapacity);
+  ui.updateLivestockUI(state);
+  storage.save(state);
+};
+
+window.collectMilk = function () {
+  if (!state.animals) state.animals = { chickens: [], cows: [] };
+  if (!Array.isArray(state.animals.cows)) state.animals.cows = [];
+
+  const totalUncollected = state.animals.cows.reduce((sum, c) => sum + (c.uncollected || 0), 0);
+  if (totalUncollected <= 0) {
+    audio.playError();
+    ui.showFloatingText(250, 750, 'No Milk to Collect!', '#f87171');
+    return;
+  }
+
+  const currentStored = getBarnTotalCount(state.inventory);
+  if (currentStored >= state.barnCapacity) {
+    audio.playError();
+    ui.showFloatingText(250, 750, 'Barn Full! Sell items first', '#f87171');
+    player.speak('Barn storage is full! Sell crops or products at the market.');
+    return;
+  }
+
+  const availableSpace = Math.max(0, state.barnCapacity - currentStored);
+  const collected = Math.min(totalUncollected, availableSpace);
+
+  let remainingToDeduct = collected;
+  for (const c of state.animals.cows) {
+    if (remainingToDeduct <= 0) break;
+    const deduct = Math.min(c.uncollected || 0, remainingToDeduct);
+    c.uncollected = (c.uncollected || 0) - deduct;
+    remainingToDeduct -= deduct;
+  }
+
+  state.inventory.milk = (state.inventory.milk || 0) + collected;
+
+  audio.playHarvest();
+  ui.showFloatingText(250, 750, `Collected +${collected} Fresh Milk! 🥛`, '#fde047');
+  player.speak(`Collected ${collected} fresh milk bottles! Stored in barn.`);
+
+  ui.updateBarnDisplays(state.inventory, state.barnCapacity);
+  ui.updateLivestockUI(state);
+  storage.save(state);
 };
 
 // 7. Weather Cycle
@@ -673,8 +975,11 @@ window.triggerHourlyPriceShift = function () {
 
   // Hourly water cycle: each field -10 moisture, well +10 water
   applyHourlyWaterCycle(state, 1);
+  livestockManager.processHourlyCycle(1);
+
   farm.renderAllPlots();
   ui.updateWellDisplay(state.wellWater);
+  ui.updateLivestockUI(state);
 
   // Town bell chime
   audio.playBell();
@@ -683,10 +988,10 @@ window.triggerHourlyPriceShift = function () {
   ui.showFloatingText(
     Math.max(20, window.innerWidth / 2 - 120),
     80,
-    '🔔 Hourly Shift: Well +10💧 | Fields -10% Moisture',
+    '🔔 Hourly Shift: Market Shifted | Animals Produced!',
     '#38bdf8'
   );
-  player.speak('New hour! Well recovered +10 water, fields lost 10% moisture.');
+  player.speak('New hour! Well recovered +10 water, fields lost 10% moisture, animals produced eggs & milk.');
 
   const timeInfo = economy.getTimeRemaining();
   ui.updateClockAndCountdown(timeInfo);
@@ -716,17 +1021,20 @@ setInterval(() => {
 
     // Hourly water cycle: each field -10 moisture, well +10 water
     applyHourlyWaterCycle(state, 1);
+    livestockManager.processHourlyCycle(1);
+
     farm.renderAllPlots();
     ui.updateWellDisplay(state.wellWater);
+    ui.updateLivestockUI(state);
 
     audio.playBell();
     ui.showFloatingText(
       Math.max(20, window.innerWidth / 2 - 120),
       80,
-      '🔔 Hourly Shift: Well +10💧 | Fields -10% Moisture',
+      '🔔 Hourly Shift: Market Shifted | Animals Produced!',
       '#38bdf8'
     );
-    player.speak('A new hour has arrived! Well gained +10 water, fields lost 10% moisture.');
+    player.speak('A new hour has arrived! Livestock processed and prices updated.');
     ui.updateSeedModalCards(state.costs, cropConfigs);
     ui.updateTicker(economy.renderTickerHTML());
     storage.save(state);
@@ -748,6 +1056,10 @@ setInterval(() => {
 setInterval(() => {
   // Advance crop growth smoothly by 1 second
   const anyChanged = farm.tickGrowth(state.weather, state.upgrades.autoIrrigation, 1);
+
+  // Tick animal roaming animations inside enclosures
+  livestockManager.tick(1);
+  ui.updateLivestockUI(state);
 
   // Save state if crop stages changed
   if (anyChanged) {

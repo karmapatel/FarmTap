@@ -1,4 +1,4 @@
-import { cropConfigs } from './crops.js';
+import { ALL_COMMODITIES } from './economy.js';
 import { audio } from './audio.js';
 
 export class Market {
@@ -16,8 +16,11 @@ export class Market {
   }
 
   updateMarketUI(activeEvent) {
+    const currentGold = Math.max(0, Math.floor(Number(this.getGold()) || 0));
     const coinDisplay = document.getElementById('marketCoinDisplay');
-    if (coinDisplay) coinDisplay.textContent = `$${this.getGold()}`;
+    if (coinDisplay) coinDisplay.textContent = `$${currentGold}`;
+    const playerGold = document.getElementById('playerGoldDisplay');
+    if (playerGold) playerGold.textContent = `$${currentGold}`;
 
     // Update Event Banner
     const eventTitle = document.getElementById('marketEventTitle');
@@ -37,33 +40,57 @@ export class Market {
     if (marketTimerEl) marketTimerEl.textContent = timeInfo.formatted;
     if (marketProgressEl) marketProgressEl.style.width = `${timeInfo.percentRemaining}%`;
 
-    // Update physical exchange stall list
-    Object.keys(cropConfigs).forEach((cropId) => {
-      const stockEl = document.getElementById(`stock-${cropId}`);
-      const priceEl = document.getElementById(`price-${cropId}`);
-      const costEl = document.getElementById(`market-seedcost-${cropId}`);
-      const marginEl = document.getElementById(`market-margin-${cropId}`);
-      const badgeEl = document.getElementById(`trend-badge-${cropId}`);
+    // Update physical exchange stall list for ALL commodities (crops + eggs + milk)
+    Object.keys(ALL_COMMODITIES).forEach((itemId) => {
+      const stockEl = document.getElementById(`stock-${itemId}`);
+      const priceEl = document.getElementById(`price-${itemId}`);
+      const costEl = document.getElementById(`market-seedcost-${itemId}`);
+      const marginEl = document.getElementById(`market-margin-${itemId}`);
+      const badgeEl = document.getElementById(`trend-badge-${itemId}`);
 
-      const qty = this.inventory[cropId] || 0;
-      const price = this.economy.getPrice(cropId);
-      const cost = this.economy.getCost(cropId);
+      const qty = this.inventory[itemId] || 0;
+      const price = this.economy.getPrice(itemId);
+      const cost = this.economy.getCost(itemId);
       const profitMargin = price - cost;
-      const trend = this.economy.getTrend(cropId);
-      const costTrend = this.economy.getCostTrend(cropId);
+      const trend = this.economy.getTrend(itemId);
+      const costTrend = this.economy.getCostTrend(itemId);
 
       if (stockEl) stockEl.textContent = qty;
-      if (priceEl) priceEl.textContent = `$${price}`;
-      if (costEl) costEl.textContent = `$${cost}`;
-      if (marginEl) {
-        marginEl.textContent = `+$${profitMargin}`;
-        marginEl.className = profitMargin > 20 ? 'text-emerald-300 font-bold' : 'text-amber-200';
+
+      if (itemId === 'eggs') {
+        const grainFeedCost = this.economy.getCost('chickenFeed');
+        if (priceEl) priceEl.textContent = `$${price}`;
+        if (costEl) costEl.textContent = `$${grainFeedCost}`;
+        const netMargin = price - grainFeedCost;
+        if (marginEl) {
+          marginEl.textContent = `+$${netMargin}`;
+          marginEl.className = netMargin > 20 ? 'text-emerald-300 font-bold' : 'text-amber-200';
+        }
+      } else if (itemId === 'milk') {
+        const hayFeedCost = this.economy.getCost('cowFeed');
+        if (priceEl) priceEl.textContent = `$${price}`;
+        if (costEl) costEl.textContent = `$${hayFeedCost}`;
+        const netMargin = price - hayFeedCost;
+        if (marginEl) {
+          marginEl.textContent = `+$${netMargin}`;
+          marginEl.className = netMargin > 20 ? 'text-emerald-300 font-bold' : 'text-amber-200';
+        }
+      } else if (itemId === 'chickenFeed' || itemId === 'cowFeed') {
+        const feedCost = this.economy.getCost(itemId);
+        if (priceEl) priceEl.textContent = `$${feedCost}`;
+      } else {
+        if (priceEl) priceEl.textContent = `$${price}`;
+        if (costEl) costEl.textContent = `$${cost}`;
+        if (marginEl) {
+          marginEl.textContent = `+$${profitMargin}`;
+          marginEl.className = profitMargin > 20 ? 'text-emerald-300 font-bold' : 'text-amber-200';
+        }
       }
 
       if (badgeEl) {
         if (costTrend === 'sale') {
           badgeEl.className = 'text-[9px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-pixel shadow animate-pulse';
-          badgeEl.textContent = 'SEED SALE!';
+          badgeEl.textContent = 'COST SALE!';
         } else if (trend === 'up') {
           badgeEl.className = 'text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.5 rounded font-pixel';
           badgeEl.textContent = '+High Spot';
@@ -76,56 +103,68 @@ export class Market {
         }
       }
     });
+
+    // Update dynamic feed button text costs
+    const btnChickenFeed = document.getElementById('btn-buy-chickenFeed');
+    if (btnChickenFeed) {
+      const cost = this.economy.getCost('chickenFeed');
+      btnChickenFeed.textContent = `BUY GRAIN FEED ($${cost})`;
+    }
+    const btnCowFeed = document.getElementById('btn-buy-cowFeed');
+    if (btnCowFeed) {
+      const cost = this.economy.getCost('cowFeed');
+      btnCowFeed.textContent = `BUY HAY FEED ($${cost})`;
+    }
   }
 
-  sell(cropId, amount) {
-    const currentStock = Math.max(0, Math.floor(Number(this.inventory[cropId]) || 0));
+  sell(itemId, amount) {
+    const currentStock = Math.max(0, Math.floor(Number(this.inventory[itemId]) || 0));
     const qtyToSell = amount === 'all' ? currentStock : 1;
 
     if (qtyToSell <= 0 || currentStock <= 0) {
       audio.playError();
-      this.showFloatingText(200, 320, `No ${cropId.toUpperCase()} in Barn!`, '#f87171');
+      this.showFloatingText(200, 320, `No ${itemId.toUpperCase()} in Barn!`, '#f87171');
       return;
     }
 
-    const unitPrice = this.economy.getPrice(cropId);
+    const unitPrice = this.economy.getPrice(itemId);
     const totalEarned = qtyToSell * unitPrice;
 
-    this.inventory[cropId] = Math.max(0, currentStock - qtyToSell);
+    this.inventory[itemId] = Math.max(0, currentStock - qtyToSell);
     this.setGold(this.getGold() + totalEarned);
 
     // Audio & Visuals
     audio.playCoin();
-    this.showFloatingText(210, 270, `+$${totalEarned} Sold ${qtyToSell} ${cropId.toUpperCase()}! 💰`, '#34d399');
+    this.showFloatingText(210, 270, `+$${totalEarned} Sold ${qtyToSell} ${itemId.toUpperCase()}! 💰`, '#34d399');
 
     // Notify economy of sales volume to adjust supply/demand
-    this.economy.recordSale(cropId, qtyToSell);
+    this.economy.recordSale(itemId, qtyToSell);
 
     // Refresh market stall stocks immediately
     this.updateMarketUI();
 
     if (this.onSale) {
-      this.onSale(cropId, qtyToSell, totalEarned);
+      this.onSale(itemId, qtyToSell, totalEarned);
     }
   }
 
   sellAllCrops() {
     let grandTotalEarned = 0;
-    let totalCropsSold = 0;
+    let totalItemsSold = 0;
 
-    Object.keys(cropConfigs).forEach((cropId) => {
-      const stock = Math.max(0, Math.floor(Number(this.inventory[cropId]) || 0));
+    Object.keys(ALL_COMMODITIES).forEach((itemId) => {
+      const stock = Math.max(0, Math.floor(Number(this.inventory[itemId]) || 0));
       if (stock > 0) {
-        const unitPrice = this.economy.getPrice(cropId);
+        const unitPrice = this.economy.getPrice(itemId);
         const earned = stock * unitPrice;
         grandTotalEarned += earned;
-        totalCropsSold += stock;
-        this.inventory[cropId] = 0;
-        this.economy.recordSale(cropId, stock);
+        totalItemsSold += stock;
+        this.inventory[itemId] = 0;
+        this.economy.recordSale(itemId, stock);
       }
     });
 
-    if (totalCropsSold <= 0) {
+    if (totalItemsSold <= 0) {
       audio.playError();
       this.showFloatingText(200, 320, 'Barn is already empty!', '#f87171');
       return;
@@ -133,17 +172,17 @@ export class Market {
 
     this.setGold(this.getGold() + grandTotalEarned);
     audio.playCoin();
-    this.showFloatingText(210, 270, `+$${grandTotalEarned} Sold ALL ${totalCropsSold} Crops! 💰`, '#34d399');
+    this.showFloatingText(210, 270, `+$${grandTotalEarned} Sold ALL ${totalItemsSold} Items! 💰`, '#34d399');
 
     this.updateMarketUI();
 
     if (this.onSale) {
-      this.onSale('all', totalCropsSold, grandTotalEarned);
+      this.onSale('all', totalItemsSold, grandTotalEarned);
     }
   }
 
-  highlightBuyer(cropId) {
-    const cfg = cropConfigs[cropId] || cropConfigs.wheat;
+  highlightBuyer(itemId) {
+    const cfg = ALL_COMMODITIES[itemId] || ALL_COMMODITIES.wheat;
     audio.playStep();
     this.showFloatingText(180, 220, `${cfg.buyer} wants fresh ${cfg.name}!`, '#fde047');
   }

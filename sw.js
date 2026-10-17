@@ -1,5 +1,5 @@
 // Service Worker for FarmTap PWA
-const CACHE_NAME = 'farmtap-v3';
+const CACHE_NAME = 'farmtap-v6';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   '/js/player.js',
   '/js/crops.js',
   '/js/farm.js',
+  '/js/animals.js',
   '/js/market.js',
   '/js/economy.js',
   '/js/events.js',

@@ -1,3 +1,5 @@
+import { processLivestockHourlyCycle } from './animals.js';
+
 // Persistent Storage using IndexedDB (with PWA persistent storage request & legacy migration)
 
 const DB_NAME = 'farmtap_idb_v1';
@@ -5,7 +7,7 @@ const DB_VERSION = 1;
 const STORE_NAME = 'farm_saves';
 const SAVE_KEY = 'player_state';
 
-export const VALID_CROPS = ['wheat', 'corn', 'tomato', 'potato', 'rice', 'sugarcane'];
+export const VALID_CROPS = ['wheat', 'corn', 'tomato', 'potato', 'rice', 'sugarcane', 'eggs', 'milk'];
 
 export function sanitizeInventory(targetInv) {
   if (!targetInv || typeof targetInv !== 'object') {
@@ -15,7 +17,9 @@ export function sanitizeInventory(targetInv) {
       tomato: 0,
       potato: 0,
       rice: 0,
-      sugarcane: 0
+      sugarcane: 0,
+      eggs: 0,
+      milk: 0
     };
   }
 
@@ -29,7 +33,7 @@ export function sanitizeInventory(targetInv) {
     }
   });
 
-  // Ensure all valid crops are defined
+  // Ensure all valid items are defined
   VALID_CROPS.forEach((crop) => {
     if (targetInv[crop] === undefined || targetInv[crop] === null) {
       targetInv[crop] = 0;
@@ -40,7 +44,7 @@ export function sanitizeInventory(targetInv) {
 }
 
 export const defaultState = {
-  gold: 500,
+  gold: 1000,
   weather: 'sunny', // 'sunny', 'heavy_rain', 'drought', 'festival'
   barnCapacity: 30,
   activeTargetPlot: null,
@@ -51,7 +55,9 @@ export const defaultState = {
     tomato: 0,
     potato: 0,
     rice: 0,
-    sugarcane: 0
+    sugarcane: 0,
+    eggs: 0,
+    milk: 0
   },
   prices: {
     wheat: 32,
@@ -59,7 +65,9 @@ export const defaultState = {
     tomato: 49,
     potato: 10,
     rice: 32,
-    sugarcane: 65
+    sugarcane: 65,
+    eggs: 45,
+    milk: 80
   },
   costs: {
     wheat: 6,
@@ -67,7 +75,21 @@ export const defaultState = {
     tomato: 18,
     potato: 5,
     rice: 14,
-    sugarcane: 25
+    sugarcane: 25,
+    eggs: 15,
+    milk: 25
+  },
+  housing: {
+    coop: { owned: true, capacity: 4 },
+    livestockBarn: { owned: false, capacity: 3 }
+  },
+  animals: {
+    chickens: [],
+    cows: []
+  },
+  feedInventory: {
+    chickenFeed: 0,
+    cowFeed: 0
   },
   lastHourKey: null,
   wellWater: 100,
@@ -204,13 +226,16 @@ export const storage = {
         : 100;
 
       const dataToSave = {
-        gold: state.gold,
+        gold: Math.max(0, Math.floor(Number(state.gold) || 0)),
         weather: state.weather,
         barnCapacity: state.barnCapacity,
         muted: state.muted,
         inventory: state.inventory,
         prices: state.prices,
         costs: state.costs,
+        housing: state.housing || defaultState.housing,
+        animals: state.animals || defaultState.animals,
+        feedInventory: state.feedInventory || defaultState.feedInventory,
         lastHourKey: state.lastHourKey || null,
         wellWater: safeWater,
         lastHourlyUpdateTimestamp: state.lastHourlyUpdateTimestamp || null,
@@ -220,6 +245,7 @@ export const storage = {
         plots: state.plots,
         upgrades: state.upgrades,
         activeEvent: state.activeEvent,
+        priceHistory: state.priceHistory || {},
         timestamp: Date.now()
       };
       cachedState = dataToSave;
@@ -329,19 +355,43 @@ export const storage = {
           loadedWellWater = Math.max(0, Math.min(100, Math.round(Number(parsed.wellWater))));
         }
 
+        let loadedGold = Math.max(0, Math.floor(Number(parsed.gold !== undefined ? parsed.gold : defaultState.gold) || 0));
+        // Ensure player account has at least $1000
+        if (loadedGold < 1000) {
+          loadedGold = 1000;
+        }
+
         // Deep merge with defaults so new fields are never undefined
         const mergedState = {
           ...defaultState,
           ...parsed,
+          gold: loadedGold,
           wellWater: loadedWellWater,
+          housing: { 
+            ...defaultState.housing, 
+            ...(parsed.housing || {}),
+            coop: { owned: true, capacity: 4 } // Starter coop is always ready for hens
+          },
+          animals: {
+            chickens: chickensList,
+            cows: Array.isArray(parsed.animals?.cows) ? parsed.animals.cows : []
+          },
+          feedInventory: { ...defaultState.feedInventory, ...(parsed.feedInventory || {}) },
           lastHourKey: parsed.lastHourKey || null,
           lastHourlyUpdateTimestamp: parsed.lastHourlyUpdateTimestamp || null,
           inventory: cleanInv,
           prices: { ...defaultState.prices, ...(parsed.prices || {}) },
           costs: { ...defaultState.costs, ...(parsed.costs || {}) },
+          priceHistory: parsed.priceHistory || {},
           upgrades: { ...defaultState.upgrades, ...(parsed.upgrades || {}) },
           plots
         };
+
+        // Offline livestock production recovery
+        if (elapsedSeconds >= 3600) {
+          const hoursPassed = Math.floor(elapsedSeconds / 3600);
+          processLivestockHourlyCycle(mergedState, hoursPassed);
+        }
 
         cachedState = mergedState;
         // Save the updated state with new timestamp

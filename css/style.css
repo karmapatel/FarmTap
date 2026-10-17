@@ -92,8 +92,17 @@ body::-webkit-scrollbar,
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   background: #46792b;
-  display: flex;
-  flex-direction: column;
+}
+
+/* Pinned Top HUD & Live Price Ticker Bar */
+#topHudOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 50;
+  pointer-events: none;
 }
 
 #worldMap,
@@ -102,24 +111,32 @@ body::-webkit-scrollbar,
   overscroll-behavior-y: auto;
 }
 
-/* Responsive Farm World Stage Container */
-#worldStageContainer {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 10;
+#worldMap {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
 }
 
-/* Responsive Farm World Stage (Canonical 500x680 space) */
+/* Responsive Farm World Stage Container */
+#worldStageContainer {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  pointer-events: none;
+  z-index: 10;
+  padding-top: calc(var(--hud-height, 90px) + 8px);
+  padding-bottom: 50px;
+}
+
+/* Responsive Farm World Stage (Canonical 500x1040 space) */
 #worldStage {
   position: relative;
   width: 500px;
-  height: 680px;
-  transform-origin: center center;
+  height: 1040px;
+  transform-origin: top center;
   transform: scale(var(--stage-scale, 1));
   will-change: transform;
   pointer-events: auto;
@@ -158,8 +175,10 @@ body::-webkit-scrollbar,
 }
 
 .float-feedback {
+  position: fixed;
   animation: floatUp 1.2s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
   pointer-events: none;
+  z-index: 60;
 }
 
 /* Sprite animations */

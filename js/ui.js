@@ -1,3 +1,5 @@
+import { renderChickenSprite, renderCowSprite, HOUSING_CONFIGS } from './animals.js';
+
 // UI Manager for Modals, Ticker Tape, Overlays, and PWA Install Prompts
 export class UIManager {
   constructor() {
@@ -11,7 +13,7 @@ export class UIManager {
     this.setupPullToRefresh();
   }
 
-  // Calculate and update the dynamic scale factor so worldStage and all game components fit within any screen
+  // Calculate and update the dynamic scale factor so worldStage fits horizontally and scrolls smoothly
   setupViewportScaling() {
     const updateScale = () => {
       const stage = document.getElementById('worldStage');
@@ -22,30 +24,34 @@ export class UIManager {
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
-      // Reserve space for top HUD (approx 75-105px depending on screen/ticker) plus comfortable breathing room
-      const hudHeight = topHud ? topHud.offsetHeight : 80;
-      if (stageContainer) {
-        stageContainer.style.top = `${hudHeight}px`;
-        stageContainer.style.bottom = '0px';
+      // Reserve space for top HUD
+      const hudHeight = topHud ? topHud.offsetHeight : 86;
+      document.documentElement.style.setProperty('--hud-height', `${hudHeight}px`);
+
+      // On mobile / narrow screens, scale worldStage by width so it fits horizontally with side padding
+      const availableWidth = viewportWidth * 0.96;
+      const scaleByWidth = availableWidth / 500;
+
+      let targetScale = scaleByWidth;
+      // On desktop / wide displays, if screen is very tall, fit gracefully
+      if (viewportWidth > 640) {
+        const availableHeight = Math.max(300, viewportHeight - hudHeight - 40);
+        const scaleByHeight = availableHeight / 1040;
+        targetScale = Math.min(scaleByWidth, Math.max(0.70, scaleByHeight));
       }
 
-      const availableWidth = viewportWidth * 0.96; // 2% padding on left/right
-      const availableHeight = Math.max(260, viewportHeight - hudHeight - 16);
-
-      // Canonical worldStage dimensions are 500w x 680h
-      const scaleX = availableWidth / 500;
-      const scaleY = availableHeight / 680;
-      
-      // Choose the smaller dimension to prevent ANY overflow, with a sensible clamp
-      const targetScale = Math.min(scaleX, scaleY);
-      this.currentScale = Math.max(0.40, Math.min(1.35, targetScale));
-
+      this.currentScale = Math.max(0.55, Math.min(1.25, targetScale));
       stage.style.setProperty('--stage-scale', this.currentScale.toFixed(3));
+
+      // Set container height so the user can smoothly drag/scroll up and down across the entire farm
+      if (stageContainer) {
+        const scaledHeight = Math.round(1040 * this.currentScale);
+        stageContainer.style.height = `${scaledHeight + hudHeight + 50}px`;
+      }
     };
 
     window.addEventListener('resize', updateScale);
     window.addEventListener('orientationchange', updateScale);
-    // Call immediately and again after fonts/styles settle
     updateScale();
     requestAnimationFrame(updateScale);
     setTimeout(updateScale, 150);
@@ -54,26 +60,31 @@ export class UIManager {
   showFloatingText(x, y, text, color = '#fde047') {
     let screenX = x;
     let screenY = y;
-    const stage = document.getElementById('worldStage');
-    if (stage && x <= 500 && y <= 700) {
-      const rect = stage.getBoundingClientRect();
-      const scale = rect.width / 500;
-      screenX = rect.left + x * scale;
-      screenY = rect.top + y * scale;
+    const marketScene = document.getElementById('marketScene');
+    const isMarketVisible = marketScene && !marketScene.classList.contains('hidden');
+
+    if (isMarketVisible) {
+      screenX = window.innerWidth / 2 - 70;
+      screenY = 170;
+    } else {
+      const stage = document.getElementById('worldStage');
+      if (stage && x <= 500 && y <= 1100) {
+        const rect = stage.getBoundingClientRect();
+        const scale = rect.width / 500;
+        screenX = rect.left + x * scale;
+        screenY = rect.top + y * scale;
+      }
     }
 
     const el = document.createElement('div');
-    el.className = 'absolute z-50 font-bold text-xs float-feedback drop-shadow-md pointer-events-none select-none font-brand';
-    el.style.left = `${Math.max(10, Math.min(window.innerWidth - 120, screenX))}px`;
+    el.className = 'fixed z-[9999] font-bold text-xs sm:text-sm float-feedback drop-shadow-lg pointer-events-none select-none font-brand bg-black/70 px-2.5 py-1 rounded-full border border-amber-400/80';
+    el.style.left = `${Math.max(10, Math.min(window.innerWidth - 180, screenX))}px`;
     el.style.top = `${Math.max(40, screenY)}px`;
     el.style.color = color;
     el.textContent = text;
     
-    const container = document.getElementById('gameViewport');
-    if (container) {
-      container.appendChild(el);
-      setTimeout(() => el.remove(), 1250);
-    }
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1400);
   }
 
   openModal(modalId) {
@@ -91,10 +102,17 @@ export class UIManager {
   }
 
   updateGoldDisplays(gold) {
+    const safeGold = Math.max(0, Math.floor(Number(gold) || 0));
     const mainDisp = document.getElementById('playerGoldDisplay');
     const marketDisp = document.getElementById('marketCoinDisplay');
-    if (mainDisp) mainDisp.textContent = `$${gold}`;
-    if (marketDisp) marketDisp.textContent = `$${gold}`;
+    const coopGoldDisp = document.getElementById('modalCoopPlayerGold');
+    const barnGoldDisp = document.getElementById('modalBarnPlayerGold');
+    const plotBalanceDisp = document.getElementById('modalPlotBalance');
+    if (mainDisp) mainDisp.textContent = `$${safeGold}`;
+    if (marketDisp) marketDisp.textContent = `$${safeGold}`;
+    if (coopGoldDisp) coopGoldDisp.textContent = `$${safeGold}`;
+    if (barnGoldDisp) barnGoldDisp.textContent = `$${safeGold}`;
+    if (plotBalanceDisp) plotBalanceDisp.textContent = `$${safeGold}`;
   }
 
   updateWellDisplay(wellWater) {
@@ -184,12 +202,12 @@ export class UIManager {
   }
 
   updateBarnDisplays(inventory, capacity) {
-    const validCrops = ['wheat', 'corn', 'tomato', 'potato', 'rice', 'sugarcane'];
+    const validItems = ['wheat', 'corn', 'tomato', 'potato', 'rice', 'sugarcane', 'eggs', 'milk'];
 
-    // Purge any invalid or ghost keys (like null, undefined) from the inventory object in place
+    // Purge any invalid or ghost keys from the inventory object
     if (inventory && typeof inventory === 'object') {
       Object.keys(inventory).forEach((key) => {
-        if (!validCrops.includes(key)) {
+        if (!validItems.includes(key)) {
           delete inventory[key];
         } else {
           const num = Number(inventory[key]);
@@ -198,8 +216,8 @@ export class UIManager {
       });
     }
 
-    const totalCount = validCrops.reduce((sum, cropId) => {
-      const val = inventory ? inventory[cropId] : 0;
+    const totalCount = validItems.reduce((sum, itemId) => {
+      const val = inventory ? inventory[itemId] : 0;
       return sum + (val > 0 ? val : 0);
     }, 0);
 
@@ -218,9 +236,9 @@ export class UIManager {
     if (modalCount) modalCount.textContent = totalCount;
     if (modalCap) modalCap.textContent = capacity;
 
-    validCrops.forEach((cropId) => {
-      const invEl = document.getElementById(`barnInv-${cropId}`);
-      if (invEl) invEl.textContent = (inventory && inventory[cropId]) ? inventory[cropId] : 0;
+    validItems.forEach((itemId) => {
+      const invEl = document.getElementById(`barnInv-${itemId}`);
+      if (invEl) invEl.textContent = (inventory && inventory[itemId]) ? inventory[itemId] : 0;
     });
 
     // Update physical crate stack count next to Barn
@@ -233,8 +251,10 @@ export class UIManager {
       if (inventory && inventory.potato > 0) crateIcons.push('🥔');
       if (inventory && inventory.rice > 0) crateIcons.push('🍚');
       if (inventory && inventory.sugarcane > 0) crateIcons.push('🎋');
+      if (inventory && inventory.eggs > 0) crateIcons.push('🥚');
+      if (inventory && inventory.milk > 0) crateIcons.push('🥛');
 
-      cratesCluster.innerHTML = crateIcons.slice(0, 4).map(ic => 
+      cratesCluster.innerHTML = crateIcons.slice(0, 5).map(ic => 
         `<div class="w-5 h-5 bg-amber-800 border border-amber-950 rounded-sm shadow text-[10px] flex items-center justify-center">${ic}</div>`
       ).join('');
     }
@@ -249,17 +269,218 @@ export class UIManager {
         track1.innerHTML = htmlContent;
         track2.innerHTML = htmlContent;
       }
-      return;
+    } else {
+      const tickerInner = document.getElementById('tickerContent');
+      if (tickerInner) {
+        tickerInner.innerHTML = `
+          <div id="tickerMarqueeTrack" class="ticker-track">
+            <div id="tickerPart1" class="ticker-content">${htmlContent}</div>
+            <div id="tickerPart2" class="ticker-content" aria-hidden="true">${htmlContent}</div>
+          </div>
+        `;
+      }
     }
 
-    const tickerInner = document.getElementById('tickerContent');
-    if (tickerInner) {
-      tickerInner.innerHTML = `
-        <div id="tickerMarqueeTrack" class="ticker-track">
-          <div id="tickerPart1" class="ticker-content">${htmlContent}</div>
-          <div id="tickerPart2" class="ticker-content" aria-hidden="true">${htmlContent}</div>
-        </div>
-      `;
+    const topHud = document.getElementById('topHudOverlay');
+    if (topHud && topHud.offsetHeight > 0) {
+      document.documentElement.style.setProperty('--hud-height', `${topHud.offsetHeight}px`);
+    }
+  }
+
+  updateLivestockUI(state) {
+    if (!state) return;
+
+    const housing = state.housing || { coop: { owned: false }, livestockBarn: { owned: false } };
+    const animals = state.animals || { chickens: [], cows: [] };
+    const feed = state.feedInventory || { chickenFeed: 0, cowFeed: 0 };
+
+    // 1. CHICKEN COOP
+    const coopStatusText = document.getElementById('coopStatusText');
+    const coopRoamPen = document.getElementById('coopRoamPen');
+    const eggCollectBadge = document.getElementById('eggCollectBadge');
+    const eggCountText = document.getElementById('eggCountText');
+    const coopUnownedPanel = document.getElementById('coopUnownedPanel');
+    const coopOwnedPanel = document.getElementById('coopOwnedPanel');
+
+    const totalChickens = Array.isArray(animals.chickens) ? animals.chickens.length : 0;
+    const totalEggs = Array.isArray(animals.chickens) ? animals.chickens.reduce((sum, c) => sum + (c.uncollected || 0), 0) : 0;
+
+    if (housing.coop && housing.coop.owned) {
+      if (coopStatusText) coopStatusText.textContent = `(${totalChickens}/4 Hens)`;
+      if (coopUnownedPanel) coopUnownedPanel.classList.add('hidden');
+      if (coopOwnedPanel) coopOwnedPanel.classList.remove('hidden');
+
+      if (totalEggs > 0 && eggCollectBadge && eggCountText) {
+        eggCountText.textContent = `${totalEggs} EGG${totalEggs > 1 ? 'S' : ''}`;
+        eggCollectBadge.classList.remove('hidden');
+      } else if (eggCollectBadge) {
+        eggCollectBadge.classList.add('hidden');
+      }
+
+      // Render roaming chicken sprites
+      if (coopRoamPen) {
+        let chickensHTML = '';
+        animals.chickens.forEach((chicken, idx) => {
+          // Spread coordinates within coop open roaming yard (never hidden by building)
+          const defaultX = 90 + (idx % 2) * 35;
+          const defaultY = 40 + Math.floor(idx / 2) * 32;
+
+          chickensHTML += `
+            <div id="chicken-anim-${idx}" class="absolute transition-all duration-1000 ease-in-out pointer-events-auto" style="left: ${defaultX}px; top: ${defaultY}px;" onclick="event.stopPropagation(); interactWith('coop');">
+              ${renderChickenSprite(chicken)}
+            </div>
+          `;
+        });
+        coopRoamPen.innerHTML = chickensHTML;
+      }
+    } else {
+      if (coopStatusText) coopStatusText.textContent = '(Build $1,200)';
+      if (coopUnownedPanel) coopUnownedPanel.classList.remove('hidden');
+      if (coopOwnedPanel) coopOwnedPanel.classList.add('hidden');
+      if (eggCollectBadge) eggCollectBadge.classList.add('hidden');
+      if (coopRoamPen) coopRoamPen.innerHTML = '';
+    }
+
+    // Update Coop Modal Stats
+    const modalChickens = document.getElementById('modalCoopChickens');
+    const modalGrainFeed = document.getElementById('modalGrainFeed');
+    const modalEggs = document.getElementById('modalUncollectedEggs');
+    const coopCareStatus = document.getElementById('coopCareStatus');
+
+    if (modalChickens) modalChickens.textContent = `${totalChickens}/4`;
+    if (modalGrainFeed) modalGrainFeed.textContent = `${feed.chickenFeed || 0} Meals`;
+    if (modalEggs) modalEggs.textContent = `${totalEggs} Eggs`;
+
+    if (coopCareStatus) {
+      if (totalChickens === 0) {
+        coopCareStatus.textContent = 'No Hens Owned';
+        coopCareStatus.className = 'font-pixel text-[10px] text-amber-300';
+      } else {
+        const avgHunger = animals.chickens.reduce((sum, c) => sum + (c.hunger || 0), 0) / totalChickens;
+        if (avgHunger < 30) {
+          coopCareStatus.textContent = '🌾 Hungry (Needs Feed)';
+          coopCareStatus.className = 'font-pixel text-[10px] text-rose-400 animate-pulse';
+        } else {
+          coopCareStatus.textContent = 'Happy & Well Fed';
+          coopCareStatus.className = 'font-pixel text-[10px] text-emerald-400';
+        }
+      }
+    }
+
+    // 2. LIVESTOCK BARN & COWS
+    const livestockStatusText = document.getElementById('livestockStatusText');
+    const cowRoamPen = document.getElementById('cowRoamPen');
+    const milkCollectBadge = document.getElementById('milkCollectBadge');
+    const milkCountText = document.getElementById('milkCountText');
+    const livestockUnownedPanel = document.getElementById('livestockUnownedPanel');
+    const livestockOwnedPanel = document.getElementById('livestockOwnedPanel');
+
+    const totalCows = Array.isArray(animals.cows) ? animals.cows.length : 0;
+    const totalMilk = Array.isArray(animals.cows) ? animals.cows.reduce((sum, c) => sum + (c.uncollected || 0), 0) : 0;
+
+    if (housing.livestockBarn && housing.livestockBarn.owned) {
+      if (livestockStatusText) livestockStatusText.textContent = `(${totalCows}/3 Cows)`;
+      if (livestockUnownedPanel) livestockUnownedPanel.classList.add('hidden');
+      if (livestockOwnedPanel) livestockOwnedPanel.classList.remove('hidden');
+
+      if (totalMilk > 0 && milkCollectBadge && milkCountText) {
+        milkCountText.textContent = `${totalMilk} MILK`;
+        milkCollectBadge.classList.remove('hidden');
+      } else if (milkCollectBadge) {
+        milkCollectBadge.classList.add('hidden');
+      }
+
+      // Render roaming cow sprites
+      if (cowRoamPen) {
+        let cowsHTML = '';
+        animals.cows.forEach((cow, idx) => {
+          const defaultX = 145 + (idx % 2) * 125;
+          const defaultY = 50 + Math.floor(idx / 2) * 65;
+
+          cowsHTML += `
+            <div id="cow-anim-${idx}" class="absolute transition-all duration-1000 ease-in-out pointer-events-auto" style="left: ${defaultX}px; top: ${defaultY}px;" onclick="event.stopPropagation(); interactWith('livestockBarn');">
+              ${renderCowSprite(cow)}
+            </div>
+          `;
+        });
+        cowRoamPen.innerHTML = cowsHTML;
+      }
+    } else {
+      if (livestockStatusText) livestockStatusText.textContent = '(Build $3,000)';
+      if (livestockUnownedPanel) livestockUnownedPanel.classList.remove('hidden');
+      if (livestockOwnedPanel) livestockOwnedPanel.classList.add('hidden');
+      if (milkCollectBadge) milkCollectBadge.classList.add('hidden');
+      if (cowRoamPen) cowRoamPen.innerHTML = '';
+    }
+
+    // Update Livestock Barn Modal Stats
+    const modalCows = document.getElementById('modalBarnCows');
+    const modalHayFeed = document.getElementById('modalHayFeed');
+    const modalMilk = document.getElementById('modalUncollectedMilk');
+    const livestockCareStatus = document.getElementById('livestockCareStatus');
+
+    if (modalCows) modalCows.textContent = `${totalCows}/3`;
+    if (modalHayFeed) modalHayFeed.textContent = `${feed.cowFeed || 0} Meals`;
+    if (modalMilk) modalMilk.textContent = `${totalMilk} Milk`;
+
+    if (livestockCareStatus) {
+      if (totalCows === 0) {
+        livestockCareStatus.textContent = 'No Cows Owned';
+        livestockCareStatus.className = 'font-pixel text-[10px] text-amber-300';
+      } else {
+        const avgHunger = animals.cows.reduce((sum, c) => sum + (c.hunger || 0), 0) / totalCows;
+        if (avgHunger < 30) {
+          livestockCareStatus.textContent = '🌾 Hungry (Needs Hay)';
+          livestockCareStatus.className = 'font-pixel text-[10px] text-rose-400 animate-pulse';
+        } else {
+          livestockCareStatus.textContent = 'Happy & Well Fed';
+          livestockCareStatus.className = 'font-pixel text-[10px] text-emerald-400';
+        }
+      }
+    }
+
+    // Market Buy Buttons disabled states check
+    const btnCoop = document.getElementById('btnMarketBuyCoop');
+    if (btnCoop && housing.coop && housing.coop.owned) {
+      btnCoop.textContent = 'COOP BUILT ✓';
+      btnCoop.disabled = true;
+      btnCoop.className = 'btn-tactile mt-2 w-full bg-stone-700 text-stone-400 font-bold py-1.5 rounded-lg text-xs cursor-not-allowed border border-stone-600';
+    }
+
+    const btnChicken = document.getElementById('btnMarketBuyChicken');
+    if (btnChicken) {
+      if (totalChickens >= 4) {
+        btnChicken.textContent = 'COOP FULL (4/4 HENS)';
+        btnChicken.disabled = true;
+        btnChicken.className = 'btn-tactile mt-2 w-full bg-stone-700 text-stone-400 font-bold py-1.5 rounded-lg text-xs cursor-not-allowed border border-stone-600';
+      } else {
+        btnChicken.textContent = `BUY HEN ($800) • (${totalChickens}/4)`;
+        btnChicken.disabled = false;
+        btnChicken.className = 'btn-tactile mt-2 w-full bg-yellow-600 hover:bg-yellow-500 text-amber-950 font-bold py-1.5 rounded-lg text-xs border border-yellow-300 shadow';
+      }
+    }
+
+    const btnBarn = document.getElementById('btnMarketBuyLivestockBarn');
+    if (btnBarn && housing.livestockBarn && housing.livestockBarn.owned) {
+      btnBarn.textContent = 'BARN BUILT ✓';
+      btnBarn.disabled = true;
+      btnBarn.className = 'btn-tactile mt-2 w-full bg-stone-700 text-stone-400 font-bold py-1.5 rounded-lg text-xs cursor-not-allowed border border-stone-600';
+    }
+
+    const btnCow = document.getElementById('btnMarketBuyCow');
+    if (btnCow) {
+      if (totalCows >= 3) {
+        btnCow.textContent = 'BARN FULL (3/3 COWS)';
+        btnCow.disabled = true;
+        btnCow.className = 'btn-tactile mt-2 w-full bg-stone-700 text-stone-400 font-bold py-1.5 rounded-lg text-xs cursor-not-allowed border border-stone-600';
+      } else if (!housing.livestockBarn?.owned) {
+        btnCow.textContent = 'BUY COW ($2,000) • REQUIRES BARN';
+        btnCow.disabled = false;
+      } else {
+        btnCow.textContent = `BUY COW ($2,000) • (${totalCows}/3)`;
+        btnCow.disabled = false;
+        btnCow.className = 'btn-tactile mt-2 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-1.5 rounded-lg text-xs border border-blue-300 shadow';
+      }
     }
   }
 

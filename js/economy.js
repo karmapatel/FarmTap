@@ -1,24 +1,74 @@
 import { cropConfigs } from './crops.js';
+import { PRODUCT_CONFIGS, FEED_CONFIGS } from './animals.js';
+
+export const ALL_COMMODITIES = {
+  ...cropConfigs,
+  ...PRODUCT_CONFIGS,
+  chickenFeed: {
+    id: 'chickenFeed',
+    name: 'Grain Feed',
+    basePrice: 30,
+    minPrice: 15,
+    maxPrice: 60,
+    baseCost: 30,
+    minCost: 15,
+    maxCost: 60
+  },
+  cowFeed: {
+    id: 'cowFeed',
+    name: 'Hay Feed',
+    basePrice: 60,
+    minPrice: 30,
+    maxPrice: 110,
+    baseCost: 60,
+    minCost: 30,
+    maxCost: 110
+  }
+};
 
 export class Economy {
-  constructor(initialPrices = null, initialCosts = null, lastHourKey = null) {
+  constructor(initialPrices = null, initialCosts = null, lastHourKey = null, initialPriceHistory = null) {
     this.prices = initialPrices ? { ...initialPrices } : {};
     this.costs = initialCosts ? { ...initialCosts } : {};
     this.priceTrends = {};
     this.costTrends = {};
     this.lastHourKey = lastHourKey || this.getCurrentHourKey();
+    this.priceHistory = initialPriceHistory ? { ...initialPriceHistory } : {};
 
-    // Initialize selling prices and seed purchasing costs
-    Object.keys(cropConfigs).forEach((cropId) => {
-      const cfg = cropConfigs[cropId];
-      if (!this.prices[cropId]) {
-        this.prices[cropId] = cfg.basePrice;
+    // Initialize selling prices and purchasing costs for crops and animal products
+    Object.keys(ALL_COMMODITIES).forEach((itemId) => {
+      const cfg = ALL_COMMODITIES[itemId];
+      if (!this.prices[itemId]) {
+        this.prices[itemId] = cfg.basePrice;
       }
-      if (!this.costs[cropId]) {
-        this.costs[cropId] = cfg.baseCost;
+      if (!this.costs[itemId]) {
+        this.costs[itemId] = cfg.baseCost || 10;
       }
-      this.priceTrends[cropId] = 'stable';
-      this.costTrends[cropId] = 'normal';
+      this.priceTrends[itemId] = 'stable';
+      this.costTrends[itemId] = 'normal';
+
+      if (!this.priceHistory[itemId] || !Array.isArray(this.priceHistory[itemId]) || this.priceHistory[itemId].length === 0) {
+        const history = [];
+        const currentPrice = this.prices[itemId];
+        const now = Date.now();
+        for (let i = 7; i > 0; i--) {
+          const jitter = Math.round((Math.random() * 6 - 3));
+          const p = Math.max(cfg.minPrice, Math.min(cfg.maxPrice, currentPrice + jitter));
+          const snapTime = now - i * 3600000;
+          history.push({ timestamp: snapTime, hour: `-${i}h`, price: p });
+        }
+        history.push({ timestamp: now, hour: 'Now', price: currentPrice });
+        this.priceHistory[itemId] = history;
+      } else {
+        const hist = this.priceHistory[itemId];
+        if (hist.length > 0) {
+          hist[hist.length - 1].price = this.prices[itemId];
+          hist[hist.length - 1].hour = 'Now';
+          if (!hist[hist.length - 1].timestamp) {
+            hist[hist.length - 1].timestamp = Date.now();
+          }
+        }
+      }
     });
   }
 
@@ -31,24 +81,24 @@ export class Economy {
     return { ...this.prices };
   }
 
-  getPrice(cropId) {
-    return this.prices[cropId] || cropConfigs[cropId]?.basePrice || 20;
+  getPrice(itemId) {
+    return this.prices[itemId] || ALL_COMMODITIES[itemId]?.basePrice || 20;
   }
 
   getCosts() {
     return { ...this.costs };
   }
 
-  getCost(cropId) {
-    return this.costs[cropId] || cropConfigs[cropId]?.baseCost || 6;
+  getCost(itemId) {
+    return this.costs[itemId] || ALL_COMMODITIES[itemId]?.baseCost || 6;
   }
 
-  getTrend(cropId) {
-    return this.priceTrends[cropId] || 'stable';
+  getTrend(itemId) {
+    return this.priceTrends[itemId] || 'stable';
   }
 
-  getCostTrend(cropId) {
-    return this.costTrends[cropId] || 'normal';
+  getCostTrend(itemId) {
+    return this.costTrends[itemId] || 'normal';
   }
 
   // Time remaining until the next hour (e.g. 54m 20s)
@@ -80,48 +130,48 @@ export class Economy {
     return false;
   }
 
-  // Update prices and costs for all crops every hour
+  // Update prices and costs for all crops & livestock products every hour
   updateHourlyPrices(activeEvent, weather) {
     this.lastHourKey = this.getCurrentHourKey();
 
-    Object.keys(cropConfigs).forEach((cropId) => {
-      const cfg = cropConfigs[cropId];
-      const oldPrice = this.prices[cropId];
-      const oldCost = this.costs[cropId];
+    Object.keys(ALL_COMMODITIES).forEach((itemId) => {
+      const cfg = ALL_COMMODITIES[itemId];
+      const oldPrice = this.prices[itemId] || cfg.basePrice;
+      const oldCost = this.costs[itemId] || cfg.baseCost || 10;
 
-      // Dynamic price changes for all crops
+      // Dynamic price changes for all commodities
       let priceChange = (Math.random() * 8 - 4);
       const priceDiffFromBase = cfg.basePrice - oldPrice;
       priceChange += priceDiffFromBase * 0.15; // Mean reversion
 
-      // Dynamic seed cost changes
+      // Dynamic seed/feed cost changes
       let costChange = (Math.random() * 4 - 2);
-      const costDiffFromBase = cfg.baseCost - oldCost;
+      const costDiffFromBase = (cfg.baseCost || 10) - oldCost;
       costChange += costDiffFromBase * 0.15;
 
       if (weather === 'drought') {
         priceChange += Math.random() * 3 + 1;
-        if (cropId === 'rice' || cropId === 'tomato') {
+        if (itemId === 'rice' || itemId === 'tomato' || itemId === 'milk') {
           costChange += Math.random() * 2 + 1;
         }
       } else if (weather === 'heavy_rain') {
         costChange -= Math.random() * 2 + 1;
         priceChange -= Math.random() * 2;
       } else if (weather === 'festival') {
-        if (cropId === 'wheat' || cropId === 'tomato' || cropId === 'sugarcane') {
-          priceChange += Math.random() * 4 + 2;
+        if (itemId === 'wheat' || itemId === 'tomato' || itemId === 'sugarcane' || itemId === 'eggs' || itemId === 'milk') {
+          priceChange += Math.random() * 5 + 2;
         }
       }
 
       if (activeEvent) {
         if (activeEvent.id === 'festival') {
-          if (cropId === 'tomato' || cropId === 'wheat') priceChange += 3;
+          if (itemId === 'tomato' || itemId === 'wheat' || itemId === 'eggs') priceChange += 4;
           costChange -= 1;
-        } else if (activeEvent.id === 'baker' && (cropId === 'wheat' || cropId === 'sugarcane')) {
-          priceChange += 4;
-          costChange += 2;
-        } else if (activeEvent.id === 'cargo' && (cropId === 'potato' || cropId === 'rice')) {
+        } else if (activeEvent.id === 'baker' && (itemId === 'wheat' || itemId === 'sugarcane' || itemId === 'eggs' || itemId === 'milk')) {
           priceChange += 5;
+          costChange += 2;
+        } else if (activeEvent.id === 'cargo' && (itemId === 'potato' || itemId === 'rice' || itemId === 'milk')) {
+          priceChange += 6;
         }
       }
 
@@ -130,36 +180,63 @@ export class Economy {
       newPrice = Math.max(cfg.minPrice, Math.min(cfg.maxPrice, newPrice));
 
       if (newPrice > oldPrice) {
-        this.priceTrends[cropId] = 'up';
+        this.priceTrends[itemId] = 'up';
       } else if (newPrice < oldPrice) {
-        this.priceTrends[cropId] = 'down';
+        this.priceTrends[itemId] = 'down';
       } else {
-        this.priceTrends[cropId] = 'stable';
+        this.priceTrends[itemId] = 'stable';
       }
-      this.prices[cropId] = newPrice;
+      this.prices[itemId] = newPrice;
 
-      // Enforce seed cost bounds
+      // Update price history (keep last 8 hours)
+      if (!this.priceHistory[itemId]) {
+        this.priceHistory[itemId] = [];
+      }
+      const hist = this.priceHistory[itemId];
+      const now = Date.now();
+      hist.push({ timestamp: now, hour: 'Now', price: newPrice });
+      if (hist.length > 8) {
+        hist.shift();
+      }
+      hist.forEach((h, idx) => {
+        const diff = hist.length - 1 - idx;
+        h.hour = diff === 0 ? 'Now' : `-${diff}h`;
+      });
+      if (hist.length > 0) {
+        hist[hist.length - 1].price = newPrice;
+        hist[hist.length - 1].hour = 'Now';
+        hist[hist.length - 1].timestamp = now;
+      }
+      this.priceHistory[itemId] = hist;
+
+      // Enforce cost bounds
       let newCost = Math.round(oldCost + costChange);
-      newCost = Math.max(cfg.minCost, Math.min(cfg.maxCost, newCost));
+      const minC = cfg.minCost || 2;
+      const maxC = cfg.maxCost || 40;
+      newCost = Math.max(minC, Math.min(maxC, newCost));
 
-      if (newCost < cfg.baseCost) {
-        this.costTrends[cropId] = 'sale';
-      } else if (newCost > cfg.baseCost) {
-        this.costTrends[cropId] = 'high';
+      if (newCost < (cfg.baseCost || 10)) {
+        this.costTrends[itemId] = 'sale';
+      } else if (newCost > (cfg.baseCost || 10)) {
+        this.costTrends[itemId] = 'high';
       } else {
-        this.costTrends[cropId] = 'normal';
+        this.costTrends[itemId] = 'normal';
       }
-      this.costs[cropId] = newCost;
+      this.costs[itemId] = newCost;
     });
   }
 
+  getPriceHistory(itemId) {
+    return this.priceHistory[itemId] || [];
+  }
+
   // Large sales depress local spot price slightly
-  recordSale(cropId, quantity) {
+  recordSale(itemId, quantity) {
     if (quantity > 3) {
       const drop = Math.min(5, Math.floor(quantity / 4));
-      const cfg = cropConfigs[cropId];
-      if (cfg) {
-        this.prices[cropId] = Math.max(cfg.minPrice, this.prices[cropId] - drop);
+      const cfg = ALL_COMMODITIES[itemId];
+      if (cfg && this.prices[itemId]) {
+        this.prices[itemId] = Math.max(cfg.minPrice, this.prices[itemId] - drop);
       }
     }
   }
@@ -175,12 +252,12 @@ export class Economy {
       </span>
     `;
 
-    const cropItems = Object.keys(cropConfigs).map((cropId) => {
-      const cfg = cropConfigs[cropId];
-      const price = this.prices[cropId];
-      const cost = this.costs[cropId];
-      const trend = this.priceTrends[cropId];
-      const costTrend = this.costTrends[cropId];
+    const commodityItems = Object.keys(ALL_COMMODITIES).map((itemId) => {
+      const cfg = ALL_COMMODITIES[itemId];
+      const price = this.prices[itemId] || cfg.basePrice;
+      const cost = this.costs[itemId] || cfg.baseCost || 10;
+      const trend = this.priceTrends[itemId];
+      const costTrend = this.costTrends[itemId];
 
       let trendClass = 'text-amber-200';
       let trendIcon = '';
@@ -194,9 +271,9 @@ export class Economy {
 
       let costBadge = '';
       if (costTrend === 'sale') {
-        costBadge = `<span class="text-[8px] bg-emerald-800 text-emerald-200 px-1 rounded font-sans">Seed: $${cost} (Sale)</span>`;
+        costBadge = `<span class="text-[8px] bg-emerald-800 text-emerald-200 px-1 rounded font-sans">Cost: $${cost} (Sale)</span>`;
       } else {
-        costBadge = `<span class="text-[8px] text-stone-400 font-sans">Seed: $${cost}</span>`;
+        costBadge = `<span class="text-[8px] text-stone-400 font-sans">Cost: $${cost}</span>`;
       }
 
       return `
@@ -209,6 +286,6 @@ export class Economy {
       `;
     }).join(' • ');
 
-    return `${timerBadge} • ${cropItems} &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp; `;
+    return `${timerBadge} • ${commodityItems} &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp; `;
   }
 }

@@ -28,12 +28,87 @@
 
     <link rel="stylesheet" href="/css/style.css" />
   </head>
-  <body class="bg-[#1c3516] text-amber-50 min-h-screen w-screen overflow-x-hidden overflow-y-auto flex flex-col justify-between">
+  <body class="bg-[#1c3516] text-amber-50 min-h-screen w-screen overflow-x-hidden overflow-y-auto">
 
     <!-- Pull-to-refresh Visual Indicator for Mobile/PWA -->
-    <div id="pullToRefreshIndicator" class="fixed top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-200 opacity-0 -translate-y-6 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-950/95 border-2 border-amber-400 text-amber-200 text-xs font-bold shadow-2xl backdrop-blur">
+    <div id="pullToRefreshIndicator" class="fixed top-2 left-1/2 -translate-x-1/2 z-70 pointer-events-none transition-all duration-200 opacity-0 -translate-y-6 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-950/95 border-2 border-amber-400 text-amber-200 text-xs font-bold shadow-2xl backdrop-blur">
       <span id="ptrIcon" class="transition-transform duration-200 inline-block text-emerald-400">↓</span>
       <span id="ptrText">Pull down to refresh</span>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- PERSISTENT TOP HUD & TICKER OVERLAY (Always pinned at top)    -->
+    <!-- ============================================================= -->
+    <div id="topHudOverlay" class="fixed top-0 inset-x-0 z-50 pointer-events-none flex flex-col p-1 sm:p-1.5 gap-1 safe-top bg-[#193214]/95 backdrop-blur-md border-b border-amber-600/50 shadow-xl transition-all">
+      
+      <!-- Top Controls Row (Responsive across all screen widths) -->
+      <div class="flex items-center justify-between gap-1 sm:gap-2 pointer-events-auto max-w-4xl mx-auto w-full">
+        
+        <!-- Left: Gold Pill & Barn Granary -->
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <!-- Gold Pill -->
+          <div class="bg-amber-950/90 border border-amber-400 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shadow flex items-center gap-1">
+            <span class="text-xs sm:text-sm">🪙</span>
+            <span id="playerGoldDisplay" class="font-pixel text-[9px] sm:text-xs text-amber-300 font-bold">$1,000</span>
+          </div>
+
+          <!-- Barn Granary Quick Counter -->
+          <div class="bg-red-950/90 border border-red-400 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full shadow flex items-center gap-1 cursor-pointer hover:border-red-300 active:scale-95 transition" onclick="interactWith('barn')" title="Barn Storage">
+            <span class="text-xs">📦</span>
+            <span class="text-[9px] sm:text-[10px] text-red-200 font-bold"><span id="headerBarnCount">0</span>/<span id="headerBarnCap">30</span></span>
+          </div>
+        </div>
+
+        <!-- Center: Next Hourly Price Change Countdown Widget -->
+        <div class="bg-amber-950/95 border border-amber-500/80 px-2 py-0.5 sm:py-1 rounded-full shadow flex items-center gap-1 pointer-events-auto cursor-pointer hover:border-yellow-300 active:scale-95 transition shrink-0" onclick="switchScene('market')" title="Next Hourly Price Change">
+          <span class="text-xs animate-pulse">⏱️</span>
+          <span class="text-[8px] sm:text-[9px] uppercase font-bold text-amber-200 hidden xs:inline">Next:</span>
+          <span id="headerPriceCountdown" class="font-pixel text-[8px] sm:text-[9px] text-emerald-400 font-bold tracking-wider">59m 40s</span>
+        </div>
+
+        <!-- Right Controls: Weather + Audio + Install + Market -->
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <!-- Weather Pill & Cycle Button -->
+          <button onclick="cycleWeather()" class="bg-emerald-950/90 hover:bg-emerald-900 active:scale-95 border border-emerald-500/70 p-1 sm:px-2 sm:py-1 rounded-full shadow flex items-center gap-1 pointer-events-auto cursor-pointer" title="Weather Condition (Tap to cycle)">
+            <span id="weatherIconDisplay" class="text-xs">☀️</span>
+            <span id="weatherTextDisplay" class="hidden lg:inline text-[9px] font-bold uppercase tracking-wider text-emerald-200">Sunny</span>
+          </button>
+
+          <!-- Mute Toggle -->
+          <button onclick="toggleSound()" class="bg-emerald-950/90 hover:bg-emerald-900 active:scale-95 border border-emerald-500/60 p-1 sm:p-1.5 rounded-full text-xs shadow pointer-events-auto" title="Toggle Sound">
+            <span id="soundIconDisplay">🔊</span>
+          </button>
+
+          <!-- In-App PWA Install Button -->
+          <button id="btnInstallApp" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold p-1 sm:px-2 sm:py-1 rounded-full text-[9px] sm:text-[10px] shadow border border-blue-300 flex items-center gap-1 pointer-events-auto hidden" title="Install App">
+            <span>📲</span> <span class="hidden sm:inline">INSTALL</span>
+          </button>
+
+          <!-- Travel to Town Market -->
+          <button id="btnHeaderMarket" onclick="switchScene('market')" class="btn-tactile bg-amber-600 hover:bg-amber-500 text-amber-950 font-black px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-[11px] shadow border border-amber-300 flex items-center gap-1 pointer-events-auto">
+            <span>MARKET</span>
+            <span class="text-[10px] sm:text-xs">➔</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STREAMING TICKER TAPE BAR (Moving live crop prices & hourly countdown) -->
+      <div class="w-full bg-black/90 backdrop-blur border-y border-amber-500/60 py-0.5 sm:py-1 overflow-hidden pointer-events-auto shadow-md flex items-center">
+        <div class="flex-shrink-0 z-10 bg-amber-950/95 border-r border-amber-500/60 px-1.5 sm:px-2 py-0.5 flex items-center gap-1 shadow">
+          <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="font-pixel text-[7px] sm:text-[8px] text-amber-300 font-bold tracking-wider">LIVE</span>
+        </div>
+        <div id="tickerContent" class="overflow-hidden whitespace-nowrap text-[8px] sm:text-[9px] font-pixel text-amber-300 flex-1 relative flex items-center">
+          <div id="tickerMarqueeTrack" class="ticker-track">
+            <div id="tickerPart1" class="ticker-content">
+              <span class="inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-bold mr-2 font-pixel text-[9px]"><span>⏱️ NEXT PRICE:</span><span class="ticker-countdown text-yellow-300 font-bold">59m 40s</span></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🌾</span><span class="font-bold text-amber-100">WHEAT</span><strong class="text-amber-200">$32 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🌽</span><span class="font-bold text-amber-100">CORN</span><strong class="text-amber-200">$47 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🍅</span><span class="font-bold text-amber-100">TOMATO</span><strong class="text-amber-200">$49 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🥔</span><span class="font-bold text-amber-100">POTATO</span><strong class="text-amber-200">$10 ▼</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🍚</span><span class="font-bold text-amber-100">RICE</span><strong class="text-amber-200">$32</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🎋</span><span class="font-bold text-amber-100">SUGAR CANE</span><strong class="text-amber-200">$65 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🥚</span><span class="font-bold text-amber-100">FRESH EGGS</span><strong class="text-amber-200">$45 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🥛</span><span class="font-bold text-amber-100">FRESH MILK</span><strong class="text-amber-200">$80 ▲</strong></span> &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
+            </div>
+            <div id="tickerPart2" class="ticker-content" aria-hidden="true">
+              <span class="inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-bold mr-2 font-pixel text-[9px]"><span>⏱️ NEXT PRICE:</span><span class="ticker-countdown text-yellow-300 font-bold">59m 40s</span></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🌾</span><span class="font-bold text-amber-100">WHEAT</span><strong class="text-amber-200">$32 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🌽</span><span class="font-bold text-amber-100">CORN</span><strong class="text-amber-200">$47 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🍅</span><span class="font-bold text-amber-100">TOMATO</span><strong class="text-amber-200">$49 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🥔</span><span class="font-bold text-amber-100">POTATO</span><strong class="text-amber-200">$10 ▼</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🍚</span><span class="font-bold text-amber-100">RICE</span><strong class="text-amber-200">$32</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🎋</span><span class="font-bold text-amber-100">SUGAR CANE</span><strong class="text-amber-200">$65 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🥚</span><span class="font-bold text-amber-100">FRESH EGGS</span><strong class="text-amber-200">$45 ▲</strong></span> • <span class="inline-flex items-center gap-1 px-2.5"><span>🥛</span><span class="font-bold text-amber-100">FRESH MILK</span><strong class="text-amber-200">$80 ▲</strong></span> &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- MAIN GAME VIEWPORT CONTAINER -->
@@ -62,13 +137,13 @@
           <rect width="100%" height="100%" fill="url(#grassGrid)"></rect>
         </svg>
 
-        <!-- WORLD STAGE CONTAINER (Flex centered & responsive scale boundary) -->
-        <div id="worldStageContainer" class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10">
-          <!-- WORLD STAGE (Scaled & Centered Canvas for all screen sizes: canonical 500x680) -->
-          <div id="worldStage" class="world-stage relative select-none shrink-0 pointer-events-auto">
+        <!-- WORLD STAGE CONTAINER (Responsive scale boundary & scroll flow) -->
+        <div id="worldStageContainer" class="relative w-full flex flex-col items-center justify-start pointer-events-none z-10">
+          <!-- WORLD STAGE (Canonical 500x1040 space for farm, fields, coop, and southern cow pasture) -->
+          <div id="worldStage" class="world-stage relative select-none shrink-0 pointer-events-auto" style="width: 500px; height: 1040px;">
             
             <!-- Dirt Roads & Patio SVG -->
-            <svg id="farmGround" class="absolute inset-0 w-full h-full cursor-crosshair" viewBox="0 0 500 680" xmlns="http://www.w3.org/2000/svg">
+            <svg id="farmGround" class="absolute inset-0 w-full h-full cursor-crosshair" viewBox="0 0 500 1040" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="dirtRoadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#b88349"></stop>
@@ -77,16 +152,19 @@
               </linearGradient>
             </defs>
 
-            <!-- Dirt Road leading from Farmhouse through Farm to Market (North to Center to East) -->
-            <path d="M -10 260 C 90 250, 160 270, 200 320 C 230 360, 230 460, 230 520 C 230 620, 210 680, 220 780" fill="none" stroke="url(#dirtRoadGrad)" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"></path>
+            <!-- Dirt Road leading from Farmhouse through Farm southwards to Cow Ranch -->
+            <path d="M -10 260 C 90 250, 160 270, 200 320 C 230 360, 230 460, 230 520 C 230 600, 225 660, 220 740" fill="none" stroke="url(#dirtRoadGrad)" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"></path>
             <!-- Speckles on road -->
-            <path d="M -10 260 C 90 250, 160 270, 200 320 C 230 360, 230 460, 230 520 C 230 620, 210 680, 220 780" fill="none" stroke="#7e5325" stroke-width="44" stroke-dasharray="2 18" stroke-linecap="round"></path>
+            <path d="M -10 260 C 90 250, 160 270, 200 320 C 230 360, 230 460, 230 520 C 230 600, 225 660, 220 740" fill="none" stroke="#7e5325" stroke-width="44" stroke-dasharray="2 18" stroke-linecap="round"></path>
 
             <!-- East Road leading to Town Market -->
             <path d="M 210 330 C 280 320, 320 280, 430 270" fill="none" stroke="url(#dirtRoadGrad)" stroke-width="38" stroke-linecap="round"></path>
 
             <!-- Road branching West to Barn & Tractor -->
             <path d="M 210 470 C 140 470, 110 460, 40 450" fill="none" stroke="url(#dirtRoadGrad)" stroke-width="32" stroke-linecap="round"></path>
+
+            <!-- Road branching into Southern Cow Pasture -->
+            <path d="M 220 730 C 210 745, 170 760, 110 780" fill="none" stroke="url(#dirtRoadGrad)" stroke-width="32" stroke-linecap="round"></path>
 
             <!-- Stone Paver Patio in front of Farmhouse -->
             <ellipse cx="235" cy="205" rx="55" ry="32" fill="#9e8469" opacity="0.65"></ellipse>
@@ -97,16 +175,15 @@
         <div class="absolute inset-0 pointer-events-none z-10">
           <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <g stroke="#784824" stroke-width="4" stroke-linecap="round">
-              <line x1="16" y1="110" x2="380" y2="110"></line>
-              <line x1="16" y1="118" x2="380" y2="118"></line>
+              <line x1="16" y1="110" x2="310" y2="110"></line>
+              <line x1="16" y1="118" x2="310" y2="118"></line>
             </g>
             <g fill="#93572c" stroke="#5d3618" stroke-width="1.5">
               <rect x="20" y="102" width="6" height="24" rx="2"></rect>
               <rect x="60" y="102" width="6" height="24" rx="2"></rect>
               <rect x="100" y="102" width="6" height="24" rx="2"></rect>
               <rect x="140" y="102" width="6" height="24" rx="2"></rect>
-              <rect x="300" y="102" width="6" height="24" rx="2"></rect>
-              <rect x="340" y="102" width="6" height="24" rx="2"></rect>
+              <rect x="295" y="102" width="6" height="24" rx="2"></rect>
             </g>
           </svg>
         </div>
@@ -348,6 +425,49 @@
           </div>
         </div>
 
+        <!-- 5b. CHICKEN COOP & ROAMING PEN (Top Right / North East) -->
+        <div id="coopObj" class="world-interactive absolute z-20 cursor-pointer group" style="top: 85px; left: 315px; width: 165px; height: 125px;" onclick="interactWith('coop')">
+          <div class="relative w-full h-full">
+            <!-- Fenced Pen Fence Lines SVG -->
+            <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 165 125">
+              <rect x="5" y="25" width="155" height="95" rx="8" fill="#4d8231" fill-opacity="0.25" stroke="#78350f" stroke-width="2" stroke-dasharray="6 4"></rect>
+              <rect x="5" y="22" width="4" height="12" fill="#78350f" rx="1"></rect>
+              <rect x="156" y="22" width="4" height="12" fill="#78350f" rx="1"></rect>
+              <rect x="5" y="112" width="4" height="12" fill="#78350f" rx="1"></rect>
+              <rect x="156" y="112" width="4" height="12" fill="#78350f" rx="1"></rect>
+            </svg>
+
+            <!-- Coop Building Structure -->
+            <div class="absolute top-2 left-2 w-20 h-20">
+              <div class="absolute -bottom-1 left-1 w-18 h-5 bg-black/25 rounded-full filter blur-xs"></div>
+              <svg viewBox="0 0 70 70" class="w-full h-full drop-shadow group-hover:scale-105 transition-transform">
+                <polygon points="5,28 35,8 65,28" fill="#b91c1c" stroke="#7f1d1d" stroke-width="1.5"></polygon>
+                <rect x="10" y="28" width="50" height="34" fill="#d97706" stroke="#78350f" stroke-width="1.5"></rect>
+                <line x1="10" y1="38" x2="60" y2="38" stroke="#b45309" stroke-width="1"></line>
+                <line x1="10" y1="48" x2="60" y2="48" stroke="#b45309" stroke-width="1"></line>
+                <rect x="26" y="38" width="18" height="24" rx="2" fill="#451a03"></rect>
+                <line x1="35" y1="38" x2="35" y2="62" stroke="#78350f" stroke-width="1"></line>
+                <polygon points="28,62 42,62 48,70 22,70" fill="#a16207"></polygon>
+                <rect x="52" y="36" width="12" height="18" fill="#b45309" stroke="#78350f" stroke-width="1"></rect>
+                <polygon points="50,36 66,36 64,30 52,30" fill="#7f1d1d"></polygon>
+              </svg>
+            </div>
+
+            <!-- Roaming Chickens Container -->
+            <div id="coopRoamPen" class="absolute inset-0 pointer-events-none"></div>
+
+            <!-- Coop Label Badge -->
+            <div id="coopBadge" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-950 border border-amber-400 px-2 py-0.5 rounded-full text-[8px] font-bold text-amber-200 shadow flex items-center gap-1 group-hover:bg-amber-800 whitespace-nowrap">
+              <span>🛖 COOP</span> <span id="coopStatusText">(0/4 Hens)</span>
+            </div>
+            
+            <!-- Floating Egg Counter Badge -->
+            <div id="eggCollectBadge" class="hidden absolute -top-8 left-1/2 -translate-x-1/2 bg-yellow-400 text-amber-950 border-2 border-amber-800 px-2 py-0.5 rounded-full text-[9px] font-black shadow-lg animate-bounce flex items-center gap-1 whitespace-nowrap">
+              <span>🥚</span> <span id="eggCountText">0 EGGS</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 6. SWAYING TREES (Foliage Scenery) -->
         <div class="absolute top-16 left-2 z-10 pointer-events-none wind-sway" style="width: 55px; height: 75px;">
           <svg viewBox="0 0 60 80" class="w-full h-full drop-shadow">
@@ -359,7 +479,7 @@
           </svg>
         </div>
 
-        <div class="absolute top-[490px] right-2 z-10 pointer-events-none wind-sway" style="width: 50px; height: 70px; animation-delay: 1.2s;">
+        <div class="absolute top-[360px] right-2 z-10 pointer-events-none wind-sway" style="width: 50px; height: 70px; animation-delay: 1.2s;">
           <svg viewBox="0 0 60 80" class="w-full h-full drop-shadow">
             <ellipse cx="30" cy="72" rx="16" ry="5" fill="black" opacity="0.25"></ellipse>
             <rect x="27" y="46" width="7" height="26" fill="#683d1c" rx="2"></rect>
@@ -368,7 +488,17 @@
           </svg>
         </div>
 
-        <div class="absolute bottom-28 left-4 z-20 pointer-events-none wind-sway" style="width: 60px; height: 80px; animation-delay: 0.5s;">
+        <div class="absolute top-[520px] right-2 z-10 pointer-events-none wind-sway" style="width: 55px; height: 75px; animation-delay: 0.8s;">
+          <svg viewBox="0 0 60 80" class="w-full h-full drop-shadow">
+            <ellipse cx="30" cy="72" rx="16" ry="5" fill="black" opacity="0.25"></ellipse>
+            <rect x="27" y="46" width="7" height="26" fill="#683d1c" rx="2"></rect>
+            <circle cx="30" cy="36" r="20" fill="#2b662c"></circle>
+            <circle cx="22" cy="25" r="17" fill="#39853a"></circle>
+            <circle cx="38" cy="23" r="15" fill="#4ea44f"></circle>
+          </svg>
+        </div>
+
+        <div class="absolute top-[580px] left-3 z-10 pointer-events-none wind-sway" style="width: 55px; height: 75px; animation-delay: 0.5s;">
           <svg viewBox="0 0 60 80" class="w-full h-full drop-shadow">
             <ellipse cx="30" cy="74" rx="20" ry="6" fill="black" opacity="0.25"></ellipse>
             <rect x="26" y="45" width="8" height="30" fill="#583115" rx="2"></rect>
@@ -379,7 +509,7 @@
         </div>
 
         <!-- 7. CROP FIELDS GRID (2 Cols x 3 Rows) -->
-        <div id="cropFieldsContainer" class="absolute z-15" style="top: 310px; left: 145px; width: 235px; height: 350px;">
+        <div id="cropFieldsContainer" class="absolute z-15" style="top: 295px; left: 140px; width: 240px; height: 385px;">
           
           <div class="flex items-center justify-between px-1 mb-1">
             <span class="text-[10px] font-bold text-amber-200 uppercase tracking-wider bg-black/40 px-2 py-0.5 rounded">
@@ -601,6 +731,68 @@
           </div>
         </div>
 
+        <!-- 5c. LIVESTOCK BARN & COW PEN (Spacious Southern Ranch Pasture - Never overlaps crop fields) -->
+        <div id="livestockBarnObj" class="world-interactive absolute z-20 cursor-pointer group" style="top: 740px; left: 15px; width: 470px; height: 260px;" onclick="interactWith('livestockBarn')">
+          <div class="relative w-full h-full">
+            <!-- Fenced Cow Pasture Lines SVG -->
+            <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 470 260">
+              <!-- Grazing Green Lawn background -->
+              <rect x="5" y="15" width="460" height="235" rx="12" fill="#4d8231" fill-opacity="0.32" stroke="#78350f" stroke-width="2.5" stroke-dasharray="8 5"></rect>
+              <!-- Wooden Fence Posts along top -->
+              <rect x="5" y="10" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <rect x="100" y="10" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <rect x="200" y="10" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <rect x="330" y="10" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <rect x="459" y="10" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <!-- Wooden Fence Posts along bottom -->
+              <rect x="5" y="240" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <rect x="120" y="240" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <rect x="240" y="240" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <rect x="360" y="240" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <rect x="459" y="240" width="6" height="18" fill="#78350f" rx="1"></rect>
+              <!-- Pasture gate opening at top -->
+              <rect x="180" y="12" width="50" height="7" fill="#b45309" stroke="#78350f" stroke-width="1.2" rx="1"></rect>
+              <!-- Hay Troughs -->
+              <rect x="135" y="30" width="45" height="16" rx="2" fill="#78350f" stroke="#451a03" stroke-width="1.5"></rect>
+              <path d="M 137 35 L 178 35 M 139 40 L 176 40" stroke="#facc15" stroke-width="2"></path>
+              <circle cx="157" cy="28" r="3.5" fill="#fde047"></circle>
+              <!-- Water Trough for Cows -->
+              <rect x="135" y="55" width="38" height="14" rx="2" fill="#1e3a8a" stroke="#172554" stroke-width="1.5"></rect>
+              <rect x="137" y="57" width="34" height="10" rx="1" fill="#38bdf8" opacity="0.8"></rect>
+            </svg>
+
+            <!-- Livestock Shelter Structure (West side of pasture) -->
+            <div class="absolute top-5 left-3 w-28 h-28">
+              <div class="absolute -bottom-1 left-1 w-26 h-6 bg-black/25 rounded-full filter blur-xs"></div>
+              <svg viewBox="0 0 90 85" class="w-full h-full drop-shadow group-hover:scale-105 transition-transform">
+                <polygon points="5,32 45,10 85,32" fill="#991b1b" stroke="#7f1d1d" stroke-width="2"></polygon>
+                <polygon points="10,31 45,13 80,31" fill="#b91c1c"></polygon>
+                <rect x="10" y="32" width="70" height="46" fill="#7f1d1d" stroke="#450a0a" stroke-width="2"></rect>
+                <line x1="12" y1="34" x2="78" y2="76" stroke="#f8fafc" stroke-width="1.5" opacity="0.45"></line>
+                <line x1="78" y1="34" x2="12" y2="76" stroke="#f8fafc" stroke-width="1.5" opacity="0.45"></line>
+                <!-- Arch Open Door -->
+                <path d="M 26 78 L 26 46 Q 45 36 64 46 L 64 78 Z" fill="#1e1b18" stroke="#450a0a" stroke-width="1.5"></path>
+                <!-- Hay Bale inside -->
+                <rect x="68" y="58" width="16" height="14" rx="2" fill="#facc15" stroke="#ca8a04" stroke-width="1"></rect>
+                <line x1="68" y1="63" x2="84" y2="63" stroke="#ca8a04" stroke-width="1"></line>
+              </svg>
+            </div>
+
+            <!-- Roaming Cows Container -->
+            <div id="cowRoamPen" class="absolute inset-0 pointer-events-none"></div>
+
+            <!-- Livestock Barn Label Badge -->
+            <div id="livestockBadge" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-950 border border-amber-400 px-2 py-0.5 rounded-full text-[8px] font-bold text-amber-200 shadow flex items-center gap-1 group-hover:bg-amber-800 whitespace-nowrap">
+              <span>🏚️ LIVESTOCK BARN</span> <span id="livestockStatusText">(Build $3,000)</span>
+            </div>
+
+            <!-- Floating Milk Counter Badge -->
+            <div id="milkCollectBadge" class="hidden absolute -top-8 left-1/2 -translate-x-1/2 bg-blue-400 text-blue-950 border-2 border-blue-800 px-2 py-0.5 rounded-full text-[9px] font-black shadow-lg animate-bounce flex items-center gap-1 whitespace-nowrap">
+              <span>🥛</span> <span id="milkCountText">0 MILK</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 8. FARMER CHARACTER (Interactive 2D Sprite that walks across the farm) -->
         <div id="playerCharacter" class="absolute z-25 pointer-events-none transition-all duration-500 ease-out" style="top: 220px; left: 185px; width: 48px; height: 60px;">
           
@@ -672,19 +864,25 @@
       <!-- ============================================================= -->
       <div id="marketScene" class="absolute inset-0 z-40 bg-[#d7a15c] flex flex-col justify-between hidden transition-opacity duration-300">
         
-        <div class="relative w-full h-full flex flex-col overflow-y-auto pb-24 max-w-2xl mx-auto shadow-2xl bg-[#dfa763]/30">
+        <div class="relative w-full h-full flex flex-col overflow-y-auto pb-24 max-w-2xl mx-auto shadow-2xl bg-[#dfa763]/30" style="padding-top: calc(var(--hud-height, 90px) + 2px);">
           
           <!-- Market Header Bar -->
-          <div class="sticky top-0 z-30 bg-amber-950/95 border-b-2 border-amber-600 px-2 sm:px-3 py-2 flex items-center justify-between shadow-lg">
-            <div class="flex items-center gap-1.5 sm:gap-2">
-              <button onclick="switchScene('farm')" class="btn-tactile bg-amber-700 hover:bg-amber-600 active:scale-95 text-amber-100 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold border border-amber-400 flex items-center gap-1 shadow">
-                <span>⬅</span> <span class="hidden xs:inline">RETURN TO </span><span>FARM</span>
-              </button>
-              <span class="font-pixel text-[9px] sm:text-[10px] text-amber-300">TOWN BAZAAR</span>
+          <div class="sticky top-0 z-30 bg-amber-950/95 border-b-2 border-amber-600 px-3 py-2 flex items-center justify-between shadow-lg">
+            <div class="flex items-center gap-2">
+              <span class="text-base sm:text-lg">🏛️</span>
+              <div>
+                <span class="font-pixel text-[10px] sm:text-xs text-amber-300 tracking-wider">TOWN BAZAAR</span>
+                <span class="text-[9px] text-amber-200/70 hidden xs:inline ml-1">• Crop &amp; Livestock Exchange</span>
+              </div>
             </div>
-            <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full border border-amber-500/50">
-              <span class="text-xs">🪙</span>
-              <span id="marketCoinDisplay" class="font-pixel text-xs text-amber-300 font-bold">$500</span>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full border border-amber-500/50">
+                <span class="text-xs">🪙</span>
+                <span id="marketCoinDisplay" class="font-pixel text-xs text-amber-300 font-bold">$1,000</span>
+              </div>
+              <button onclick="switchScene('farm')" class="btn-tactile bg-amber-700 hover:bg-amber-600 active:scale-95 text-amber-100 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold border border-amber-400 flex items-center gap-1 shadow">
+                <span>⬅ FARM</span>
+              </button>
             </div>
           </div>
 
@@ -959,88 +1157,163 @@
                 </div>
               </div>
 
+              <!-- Eggs -->
+              <div id="trade-eggs" class="bg-amber-900/90 border-2 border-yellow-500 rounded-xl p-2.5 sm:p-3 flex items-center justify-between shadow-md gap-2">
+                <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                  <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 bg-yellow-900/80 border border-yellow-400 rounded-lg flex items-center justify-center text-lg sm:text-xl shadow">🥚</div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="font-bold text-xs sm:text-sm text-amber-100">Fresh Eggs</span>
+                      <span id="trend-badge-eggs" class="text-[8px] sm:text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.5 rounded font-pixel">+High Spot</span>
+                    </div>
+                    <div class="text-[9px] sm:text-[10px] text-amber-300/90 flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
+                      <span>Spot: <strong id="price-eggs" class="text-amber-200 font-pixel text-[9px] sm:text-[10px]">$45</strong></span>
+                      <span>Feed: <strong id="market-seedcost-eggs" class="text-amber-100 font-pixel text-[9px] sm:text-[10px]">$15</strong></span>
+                      <span>Net: <strong id="market-margin-eggs" class="text-emerald-300 font-bold">+$30</strong></span>
+                      <span>Barn: <strong id="stock-eggs" class="text-white">0</strong></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button onclick="sellCrop('eggs', 1)" class="btn-tactile bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs shadow border border-emerald-400">
+                    SELL 1
+                  </button>
+                  <button onclick="sellCrop('eggs', 'all')" class="btn-tactile bg-amber-700 hover:bg-amber-600 active:scale-95 text-amber-100 font-bold px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs shadow border border-amber-400">
+                    ALL
+                  </button>
+                </div>
+              </div>
+
+              <!-- Milk -->
+              <div id="trade-milk" class="bg-amber-900/90 border-2 border-blue-400 rounded-xl p-2.5 sm:p-3 flex items-center justify-between shadow-md gap-2">
+                <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                  <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 bg-blue-900/80 border border-blue-400 rounded-lg flex items-center justify-center text-lg sm:text-xl shadow">🥛</div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="font-bold text-xs sm:text-sm text-amber-100">Fresh Milk</span>
+                      <span id="trend-badge-milk" class="text-[8px] sm:text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.5 rounded font-pixel">+High Spot</span>
+                    </div>
+                    <div class="text-[9px] sm:text-[10px] text-amber-300/90 flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
+                      <span>Spot: <strong id="price-milk" class="text-amber-200 font-pixel text-[9px] sm:text-[10px]">$80</strong></span>
+                      <span>Feed: <strong id="market-seedcost-milk" class="text-amber-100 font-pixel text-[9px] sm:text-[10px]">$25</strong></span>
+                      <span>Net: <strong id="market-margin-milk" class="text-emerald-300 font-bold">+$55</strong></span>
+                      <span>Barn: <strong id="stock-milk" class="text-white">0</strong></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button onclick="sellCrop('milk', 1)" class="btn-tactile bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs shadow border border-emerald-400">
+                    SELL 1
+                  </button>
+                  <button onclick="sellCrop('milk', 'all')" class="btn-tactile bg-amber-700 hover:bg-amber-600 active:scale-95 text-amber-100 font-bold px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs shadow border border-amber-400">
+                    ALL
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Livestock & Feed Market Section -->
+          <div class="px-3 mt-4">
+            <div class="text-xs font-bold text-amber-950 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span>🐓 Livestock &amp; Feed Exchange</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <!-- Housing Purchases -->
+              <div class="bg-amber-950/90 border-2 border-amber-600 rounded-xl p-2.5 flex flex-col justify-between shadow">
+                <div>
+                  <div class="font-bold text-xs text-amber-100 flex items-center justify-between">
+                    <span>🛖 Chicken Coop</span>
+                    <span class="text-emerald-400 font-pixel text-[10px]">BUILT ✓</span>
+                  </div>
+                  <p class="text-[9px] text-amber-200/80 mt-1">Wooden coop with nesting boxes and roaming yard for 4 hens.</p>
+                </div>
+                <button id="btnMarketBuyCoop" disabled class="btn-tactile mt-2 w-full bg-stone-700 text-stone-400 font-bold py-1.5 rounded-lg text-xs cursor-not-allowed border border-stone-600">
+                  COOP BUILT ✓
+                </button>
+              </div>
+
+              <div class="bg-amber-950/90 border-2 border-amber-600 rounded-xl p-2.5 flex flex-col justify-between shadow">
+                <div>
+                  <div class="font-bold text-xs text-amber-100 flex items-center justify-between">
+                    <span>🏚️ Livestock Barn</span>
+                    <span class="text-amber-300 font-pixel text-[10px]">$3,000</span>
+                  </div>
+                  <p class="text-[9px] text-amber-200/80 mt-1">Unlocks dairy pasture with 3 cow capacity.</p>
+                </div>
+                <button id="btnMarketBuyLivestockBarn" onclick="buyHousing('livestockBarn')" class="btn-tactile mt-2 w-full bg-amber-600 hover:bg-amber-500 text-amber-950 font-bold py-1.5 rounded-lg text-xs border border-amber-300 shadow">
+                  BUY BARN ($3,000)
+                </button>
+              </div>
+
+              <!-- Animal Purchases -->
+              <div class="bg-amber-950/90 border-2 border-yellow-600/80 rounded-xl p-2.5 flex flex-col justify-between shadow">
+                <div>
+                  <div class="font-bold text-xs text-yellow-200 flex items-center justify-between">
+                    <span>🐔 Purchase Hen</span>
+                    <span class="text-yellow-300 font-pixel text-[10px]">$800</span>
+                  </div>
+                  <p class="text-[9px] text-amber-200/80 mt-1">Houses in Chicken Coop. Produces 1 egg/hour.</p>
+                </div>
+                <button id="btnMarketBuyChicken" onclick="buyAnimal('chicken')" class="btn-tactile mt-2 w-full bg-yellow-600 hover:bg-yellow-500 text-amber-950 font-bold py-1.5 rounded-lg text-xs border border-yellow-300 shadow">
+                  BUY HEN ($800)
+                </button>
+              </div>
+
+              <div class="bg-amber-950/90 border-2 border-blue-600/80 rounded-xl p-2.5 flex flex-col justify-between shadow">
+                <div>
+                  <div class="font-bold text-xs text-blue-200 flex items-center justify-between">
+                    <span>🐄 Purchase Cow</span>
+                    <span class="text-blue-300 font-pixel text-[10px]">$2,000</span>
+                  </div>
+                  <p class="text-[9px] text-amber-200/80 mt-1">Requires Barn. Produces 1 milk/2 hours.</p>
+                </div>
+                <button id="btnMarketBuyCow" onclick="buyAnimal('cow')" class="btn-tactile mt-2 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-1.5 rounded-lg text-xs border border-blue-300 shadow">
+                  BUY COW ($2,000)
+                </button>
+              </div>
+
+              <!-- Feed Supplies -->
+              <div class="bg-amber-950/90 border border-amber-600 rounded-xl p-2.5 flex flex-col justify-between shadow">
+                <div>
+                  <div class="font-bold text-xs text-amber-100 flex items-center justify-between">
+                    <span>🌾 Grain Feed (5 Meals)</span>
+                    <span id="price-chickenFeed" class="text-emerald-300 font-pixel text-[10px]">$30</span>
+                  </div>
+                  <p class="text-[9px] text-amber-200/80 mt-1">Nutritious grain feed for chickens.</p>
+                </div>
+                <button id="btn-buy-chickenFeed" onclick="buyFeed('chickenFeed')" class="btn-tactile mt-2 w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs border border-emerald-400 shadow">
+                  BUY GRAIN FEED ($30)
+                </button>
+              </div>
+
+              <div class="bg-amber-950/90 border border-amber-600 rounded-xl p-2.5 flex flex-col justify-between shadow">
+                <div>
+                  <div class="font-bold text-xs text-amber-100 flex items-center justify-between">
+                    <span>🌿 Hay Feed (5 Meals)</span>
+                    <span id="price-cowFeed" class="text-emerald-300 font-pixel text-[10px]">$60</span>
+                  </div>
+                  <p class="text-[9px] text-amber-200/80 mt-1">Rich organic hay bales for cows.</p>
+                </div>
+                <button id="btn-buy-cowFeed" onclick="buyFeed('cowFeed')" class="btn-tactile mt-2 w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs border border-emerald-400 shadow">
+                  BUY HAY FEED ($60)
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
 
-      <!-- ============================================================= -->
-      <!-- TOP HUD OVERLAY UI: Game Status, Ticker Tape, Weather, Install -->
-      <!-- ============================================================= -->
-      <div id="topHudOverlay" class="absolute top-0 inset-x-0 z-30 pointer-events-none flex flex-col p-1.5 sm:p-2 gap-1 sm:gap-1.5 safe-top">
-        
-        <!-- Top Bar Row -->
-        <div class="flex items-center justify-between gap-1.5 sm:gap-2 pointer-events-auto max-w-4xl mx-auto w-full">
-          
-          <!-- Left Group: Gold Pill & Barn Granary -->
-          <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <!-- Gold Pill -->
-            <div class="bg-amber-950/90 backdrop-blur border-2 border-amber-500 px-2 sm:px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5">
-              <span class="text-sm sm:text-base animate-spin" style="animation-duration: 8s;">🪙</span>
-              <span id="playerGoldDisplay" class="font-pixel text-[10px] sm:text-xs text-amber-300 font-bold tracking-wider">$500</span>
-            </div>
 
-            <!-- Barn Granary Quick Counter -->
-            <div class="bg-red-950/85 backdrop-blur border border-red-500/80 px-2 py-1 rounded-full shadow flex items-center gap-1 cursor-pointer hover:border-red-400 active:scale-95 transition" onclick="interactWith('barn')" title="Barn Storage">
-              <span class="text-xs">📦</span>
-              <span class="text-[9px] sm:text-[10px] text-red-200 font-bold"><span id="headerBarnCount">0</span>/<span id="headerBarnCap">30</span></span>
-            </div>
-          </div>
-
-          <!-- Center: Next Hourly Price Change Countdown Widget -->
-          <div class="bg-amber-950/95 backdrop-blur border-2 border-amber-500/80 px-2 sm:px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1 sm:gap-1.5 pointer-events-auto cursor-pointer hover:border-yellow-300 active:scale-95 transition" onclick="switchScene('market')" title="Next Hourly Price Change">
-            <span class="text-xs animate-pulse">⏱️</span>
-            <span class="text-[8px] sm:text-[9px] uppercase font-bold text-amber-200 hidden md:inline">Next Price:</span>
-            <span id="headerPriceCountdown" class="font-pixel text-[8px] sm:text-[9px] text-emerald-400 font-bold tracking-wider">59m 40s</span>
-          </div>
-
-          <!-- Right Controls: Weather + Audio + PWA Install + Market -->
-          <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <!-- Weather Pill & Cycle Button -->
-            <button onclick="cycleWeather()" class="bg-emerald-950/90 hover:bg-emerald-900 active:scale-95 border border-emerald-500/70 px-2 py-1 rounded-full shadow flex items-center gap-1 pointer-events-auto cursor-pointer" title="Weather Condition (Tap to cycle)">
-              <span id="weatherIconDisplay" class="text-xs sm:text-sm">☀️</span>
-              <span id="weatherTextDisplay" class="hidden lg:inline text-[9px] font-bold uppercase tracking-wider text-emerald-200">Sunny</span>
-            </button>
-
-            <!-- Mute Toggle -->
-            <button onclick="toggleSound()" class="bg-emerald-950/90 hover:bg-emerald-900 active:scale-95 border border-emerald-500/60 p-1 sm:p-1.5 rounded-full text-xs shadow pointer-events-auto" title="Toggle Sound">
-              <span id="soundIconDisplay">🔊</span>
-            </button>
-
-            <!-- In-App PWA Install Button -->
-            <button id="btnInstallApp" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] shadow-lg border border-blue-300 flex items-center gap-1 pointer-events-auto">
-              <span>📲</span> <span class="hidden sm:inline">INSTALL</span>
-            </button>
-
-            <!-- Travel to Town Market -->
-            <button onclick="switchScene('market')" class="btn-tactile bg-amber-600 hover:bg-amber-500 text-amber-950 font-black px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-[11px] shadow-lg border-2 border-amber-300 flex items-center gap-1 pointer-events-auto">
-              <span>MARKET</span>
-              <span class="text-xs">➔</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- STREAMING TICKER TAPE BAR (Real-time live prices) -->
-        <div class="w-full bg-black/85 backdrop-blur border-y border-amber-500/50 py-0.5 sm:py-1 overflow-hidden pointer-events-auto shadow-md flex items-center">
-          <div class="flex-shrink-0 z-10 bg-amber-950/95 border-r border-amber-500/60 px-1.5 sm:px-2 py-0.5 flex items-center gap-1 shadow">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-            <span class="font-pixel text-[7px] sm:text-[8px] text-amber-300 font-bold tracking-wider">LIVE</span>
-          </div>
-          <div id="tickerContent" class="overflow-hidden whitespace-nowrap text-[9px] sm:text-[10px] font-pixel text-amber-300 flex-1 relative flex items-center">
-            <div id="tickerMarqueeTrack" class="ticker-track">
-              <div id="tickerPart1" class="ticker-content"></div>
-              <div id="tickerPart2" class="ticker-content" aria-hidden="true"></div>
-            </div>
-          </div>
-        </div>
-      </div>
 
 
       <!-- ============================================================= -->
       <!-- SEED SELECTOR MODAL (When tapping an empty plot) -->
       <!-- ============================================================= -->
-      <div id="seedModal" class="game-modal hidden-modal absolute inset-x-2 sm:inset-x-4 bottom-3 sm:bottom-6 z-50 bg-amber-950/95 border-2 border-amber-500 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur max-w-lg mx-auto max-h-[85vh] overflow-y-auto safe-bottom">
+      <div id="seedModal" class="game-modal hidden-modal absolute inset-x-2 sm:inset-x-4 bottom-3 sm:bottom-6 z-60 bg-amber-950/95 border-2 border-amber-500 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur max-w-lg mx-auto max-h-[85vh] overflow-y-auto safe-bottom">
         <div class="flex justify-between items-center mb-2">
           <div class="flex items-center gap-2">
             <span class="text-xl">🌱</span>
@@ -1122,7 +1395,7 @@
       <!-- ============================================================= -->
       <!-- FARMHOUSE HOMESTEAD UPGRADES MODAL -->
       <!-- ============================================================= -->
-      <div id="farmhouseModal" class="game-modal hidden-modal absolute inset-x-2 sm:inset-x-4 top-10 sm:top-14 bottom-10 sm:bottom-14 z-50 bg-amber-950/95 border-2 border-amber-500 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur overflow-y-auto max-w-lg mx-auto">
+      <div id="farmhouseModal" class="game-modal hidden-modal absolute inset-x-2 sm:inset-x-4 top-10 sm:top-14 bottom-10 sm:bottom-14 z-60 bg-amber-950/95 border-2 border-amber-500 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur overflow-y-auto max-w-lg mx-auto">
         <div class="flex justify-between items-center mb-3">
           <div class="flex items-center gap-2">
             <span class="text-2xl">🏡</span>
@@ -1187,7 +1460,7 @@
       <!-- ============================================================= -->
       <!-- BARN GRANARY INVENTORY MODAL -->
       <!-- ============================================================= -->
-      <div id="barnModal" class="game-modal hidden-modal absolute inset-x-2 sm:inset-x-4 bottom-3 sm:bottom-6 z-50 bg-amber-950/95 border-2 border-red-500/80 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur max-w-md mx-auto max-h-[85vh] overflow-y-auto safe-bottom">
+      <div id="barnModal" class="game-modal hidden-modal absolute inset-x-2 sm:inset-x-4 bottom-3 sm:bottom-6 z-60 bg-amber-950/95 border-2 border-red-500/80 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur max-w-md mx-auto max-h-[85vh] overflow-y-auto safe-bottom">
         <div class="flex justify-between items-center mb-2">
           <div class="flex items-center gap-2">
             <span class="text-xl">📦</span>
@@ -1199,7 +1472,7 @@
           <button onclick="closeModal('barnModal')" class="text-amber-400 hover:text-white text-lg font-bold px-2 py-0.5">✕</button>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 my-3">
+        <div class="grid grid-cols-4 gap-2 my-3">
           <div class="bg-amber-900/80 border border-amber-600 rounded-lg p-2 text-center">
             <div class="text-xl">🌾</div>
             <div class="text-[10px] font-bold text-amber-100">Wheat</div>
@@ -1230,6 +1503,16 @@
             <div class="text-[10px] font-bold text-amber-100">Sugar Cane</div>
             <div class="font-pixel text-xs text-amber-300 mt-0.5" id="barnInv-sugarcane">0</div>
           </div>
+          <div class="bg-amber-900/80 border border-yellow-500 rounded-lg p-2 text-center">
+            <div class="text-xl">🥚</div>
+            <div class="text-[10px] font-bold text-yellow-200">Eggs</div>
+            <div class="font-pixel text-xs text-yellow-300 mt-0.5" id="barnInv-eggs">0</div>
+          </div>
+          <div class="bg-amber-900/80 border border-blue-400 rounded-lg p-2 text-center">
+            <div class="text-xl">🥛</div>
+            <div class="text-[10px] font-bold text-blue-200">Milk</div>
+            <div class="font-pixel text-xs text-blue-300 mt-0.5" id="barnInv-milk">0</div>
+          </div>
         </div>
 
         <div class="flex gap-2">
@@ -1244,9 +1527,159 @@
 
 
       <!-- ============================================================= -->
+      <!-- CHICKEN COOP MANAGEMENT MODAL -->
+      <!-- ============================================================= -->
+      <div id="coopModal" class="game-modal hidden-modal absolute inset-x-2 sm:inset-x-4 bottom-3 sm:bottom-6 z-60 bg-amber-950/95 border-2 border-yellow-500 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur max-w-md mx-auto max-h-[85vh] overflow-y-auto safe-bottom">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🛖</span>
+            <div>
+              <h3 class="font-brand font-bold text-sm text-amber-100">Chicken Coop Management</h3>
+              <span class="text-[9px] text-amber-300/90">Hens produce 1 egg per hour when fed grain feed</span>
+            </div>
+          </div>
+          <button onclick="closeModal('coopModal')" class="text-amber-400 hover:text-white text-lg font-bold px-2 py-0.5">✕</button>
+        </div>
+
+        <div id="coopUnownedPanel" class="bg-amber-900/80 border border-amber-600 rounded-xl p-3 text-center my-2 hidden">
+          <div class="text-3xl mb-1">🛖</div>
+          <h4 class="font-bold text-amber-100 text-sm">Chicken Coop</h4>
+          <p class="text-xs text-amber-200/90 my-2">Cozy wooden coop with a fenced pen to house up to 4 egg-laying hens!</p>
+        </div>
+
+        <div id="coopOwnedPanel" class="space-y-2.5 my-2">
+          <!-- Stats Summary -->
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-amber-900/80 border border-amber-600 rounded-lg p-2 text-center">
+              <div class="text-[9px] font-bold text-amber-300 uppercase">Hens</div>
+              <div id="modalCoopChickens" class="font-pixel text-xs text-amber-100 mt-0.5">0/4</div>
+            </div>
+            <div class="bg-amber-900/80 border border-amber-600 rounded-lg p-2 text-center">
+              <div class="text-[9px] font-bold text-amber-300 uppercase">Grain Feed</div>
+              <div id="modalGrainFeed" class="font-pixel text-xs text-amber-100 mt-0.5">0 Meals</div>
+            </div>
+            <div class="bg-amber-900/80 border border-amber-600 rounded-lg p-2 text-center">
+              <div class="text-[9px] font-bold text-amber-300 uppercase">Uncollected</div>
+              <div id="modalUncollectedEggs" class="font-pixel text-xs text-yellow-300 mt-0.5">0 Eggs</div>
+            </div>
+          </div>
+
+          <!-- Collect & Feed Actions -->
+          <div class="flex gap-2">
+            <button onclick="collectEggs()" class="btn-tactile flex-1 bg-yellow-500 hover:bg-yellow-400 text-amber-950 font-bold py-2 rounded-xl text-xs border border-yellow-300 flex items-center justify-center gap-1 shadow">
+              <span>🥚 COLLECT EGGS</span>
+            </button>
+            <button onclick="feedAnimals('chicken')" class="btn-tactile flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs border border-emerald-400 flex items-center justify-center gap-1 shadow">
+              <span>🌾 FEED HENS</span>
+            </button>
+          </div>
+
+          <!-- Care & Status -->
+          <div class="bg-black/40 rounded-xl p-2.5 border border-amber-700/60 text-xs text-amber-200">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-amber-300">Flock Status:</span>
+              <span id="coopCareStatus" class="font-pixel text-[10px] text-emerald-400">Happy &amp; Well Fed</span>
+            </div>
+            <p class="text-[10px] text-amber-200/80 leading-tight">
+              Each feeding consumes 1 grain feed meal per hen. Well-fed hens produce 1 egg per hour.
+            </p>
+          </div>
+
+          <!-- Buy Hen -->
+          <div class="pt-2 border-t border-amber-800/60 flex items-center justify-between">
+            <div>
+              <span class="font-bold text-xs text-amber-100">Buy Hen ($800)</span>
+              <div class="text-[9px] text-amber-300">Requires open capacity in Coop</div>
+              <div class="text-[9px] text-amber-200 mt-0.5">Your Coins: <strong id="modalCoopPlayerGold" class="font-pixel text-yellow-300 font-bold">$1,000</strong></div>
+            </div>
+            <button onclick="buyAnimal('chicken')" class="btn-tactile bg-amber-600 hover:bg-amber-500 text-amber-950 font-bold px-3 py-1.5 rounded-lg text-xs border border-amber-300 shadow">
+              +1 HEN ($800)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================= -->
+      <!-- LIVESTOCK BARN MANAGEMENT MODAL -->
+      <!-- ============================================================= -->
+      <div id="livestockBarnModal" class="game-modal hidden-modal absolute inset-x-2 sm:inset-x-4 bottom-3 sm:bottom-6 z-60 bg-amber-950/95 border-2 border-blue-500 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur max-w-md mx-auto max-h-[85vh] overflow-y-auto safe-bottom">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🏚️</span>
+            <div>
+              <h3 class="font-brand font-bold text-sm text-amber-100">Livestock Barn Management</h3>
+              <span class="text-[9px] text-amber-300/90">Dairy cows produce 1 milk per 2 hours when fed hay</span>
+            </div>
+          </div>
+          <button onclick="closeModal('livestockBarnModal')" class="text-amber-400 hover:text-white text-lg font-bold px-2 py-0.5">✕</button>
+        </div>
+
+        <div id="livestockUnownedPanel" class="bg-amber-900/80 border border-amber-600 rounded-xl p-3 text-center my-2">
+          <div class="text-3xl mb-1">🏚️</div>
+          <h4 class="font-bold text-amber-100 text-sm">Livestock Barn Required</h4>
+          <p class="text-xs text-amber-200/90 my-2">Build a sturdy animal shelter with a pasture pen to house up to 3 dairy cows!</p>
+          <button onclick="buyHousing('livestockBarn')" class="btn-tactile bg-blue-600 hover:bg-blue-500 text-white font-black px-4 py-2 rounded-xl text-xs shadow-lg border border-blue-300">
+            BUILD LIVESTOCK BARN ($3,000)
+          </button>
+        </div>
+
+        <div id="livestockOwnedPanel" class="space-y-2.5 my-2 hidden">
+          <!-- Stats Summary -->
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-amber-900/80 border border-amber-600 rounded-lg p-2 text-center">
+              <div class="text-[9px] font-bold text-amber-300 uppercase">Cows</div>
+              <div id="modalBarnCows" class="font-pixel text-xs text-amber-100 mt-0.5">0/3</div>
+            </div>
+            <div class="bg-amber-900/80 border border-amber-600 rounded-lg p-2 text-center">
+              <div class="text-[9px] font-bold text-amber-300 uppercase">Hay Feed</div>
+              <div id="modalHayFeed" class="font-pixel text-xs text-amber-100 mt-0.5">0 Meals</div>
+            </div>
+            <div class="bg-amber-900/80 border border-amber-600 rounded-lg p-2 text-center">
+              <div class="text-[9px] font-bold text-amber-300 uppercase">Uncollected</div>
+              <div id="modalUncollectedMilk" class="font-pixel text-xs text-blue-300 mt-0.5">0 Milk</div>
+            </div>
+          </div>
+
+          <!-- Collect & Feed Actions -->
+          <div class="flex gap-2">
+            <button onclick="collectMilk()" class="btn-tactile flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-xl text-xs border border-blue-300 flex items-center justify-center gap-1 shadow">
+              <span>🥛 COLLECT MILK</span>
+            </button>
+            <button onclick="feedAnimals('cow')" class="btn-tactile flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs border border-emerald-400 flex items-center justify-center gap-1 shadow">
+              <span>🌿 FEED COWS</span>
+            </button>
+          </div>
+
+          <!-- Care & Status -->
+          <div class="bg-black/40 rounded-xl p-2.5 border border-amber-700/60 text-xs text-amber-200">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-amber-300">Herd Status:</span>
+              <span id="livestockCareStatus" class="font-pixel text-[10px] text-emerald-400">Happy &amp; Well Fed</span>
+            </div>
+            <p class="text-[10px] text-amber-200/80 leading-tight">
+              Each feeding consumes 1 hay feed meal per cow. Well-fed cows produce 1 milk every 2 hours.
+            </p>
+          </div>
+
+          <!-- Buy Cow -->
+          <div class="pt-2 border-t border-amber-800/60 flex items-center justify-between">
+            <div>
+              <span class="font-bold text-xs text-amber-100">Buy Cow ($2,000)</span>
+              <div class="text-[9px] text-amber-300">Requires open capacity in Barn</div>
+              <div class="text-[9px] text-amber-200 mt-0.5">Your Coins: <strong id="modalBarnPlayerGold" class="font-pixel text-yellow-300 font-bold">$1,000</strong></div>
+            </div>
+            <button onclick="buyAnimal('cow')" class="btn-tactile bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs border border-blue-300 shadow">
+              +1 COW ($2,000)
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ============================================================= -->
       <!-- UNLOCK CROPPING FIELD #6 MODAL (2,000 COINS DIRECT UNLOCK) -->
       <!-- ============================================================= -->
-      <div id="unlockPlotModal" class="game-modal hidden-modal fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div id="unlockPlotModal" class="game-modal hidden-modal fixed inset-0 z-60 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
         <div class="bg-amber-950/95 border-2 border-amber-500 rounded-2xl p-4 sm:p-5 shadow-2xl max-w-sm w-full text-center relative">
           <button onclick="closeModal('unlockPlotModal')" class="absolute top-2.5 right-3 text-amber-400 hover:text-white text-base font-bold">✕</button>
           
@@ -1289,7 +1722,7 @@
       <!-- ============================================================= -->
       <!-- iOS SAFARI PWA INSTALL GUIDE MODAL -->
       <!-- ============================================================= -->
-      <div id="iosInstallModal" class="game-modal hidden-modal fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div id="iosInstallModal" class="game-modal hidden-modal fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4">
         <div class="w-full max-w-sm rounded-2xl bg-amber-950 border-2 border-amber-500 p-5 shadow-2xl text-amber-100">
           <div class="flex items-center gap-2 mb-3">
             <span class="text-2xl">📲</span>
