@@ -554,12 +554,12 @@ export class UIManager {
 
     // Use strictly passive listeners so native gestures and scrolling are NEVER blocked or prevented
     window.addEventListener('touchstart', (e) => {
-      // Only track if at the very top of the page
+      // ONLY track if at the absolute top of the page (scrollTop <= 2)
       const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      if (scrollTop <= 5 && e.touches.length === 1) {
+      if (scrollTop <= 2 && e.touches.length === 1) {
         startY = e.touches[0].clientY;
         currentY = startY;
-        isTracking = startY < 180 || scrollTop <= 0;
+        isTracking = true;
       } else {
         isTracking = false;
       }
@@ -569,6 +569,16 @@ export class UIManager {
       if (!isTracking || e.touches.length !== 1) return;
       currentY = e.touches[0].clientY;
       const pullDistance = currentY - startY;
+
+      // If pulling UP (scrolling up the page or negative distance), cancel tracking immediately
+      if (pullDistance <= 0) {
+        isTracking = false;
+        if (indicator) {
+          indicator.classList.remove('opacity-100', 'translate-y-0');
+          indicator.classList.add('opacity-0', '-translate-y-6', 'pointer-events-none');
+        }
+        return;
+      }
 
       if (pullDistance > 25 && indicator) {
         indicator.classList.remove('opacity-0', '-translate-y-6', 'pointer-events-none');
