@@ -356,10 +356,6 @@ export const storage = {
         }
 
         let loadedGold = Math.max(0, Math.floor(Number(parsed.gold !== undefined ? parsed.gold : defaultState.gold) || 0));
-        // Ensure player account has at least $1000
-        if (loadedGold < 1000) {
-          loadedGold = 1000;
-        }
 
         // Deep merge with defaults so new fields are never undefined
         const mergedState = {

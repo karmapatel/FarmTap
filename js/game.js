@@ -11,10 +11,6 @@ import { LivestockManager, ANIMAL_CONFIGS, HOUSING_CONFIGS, FEED_CONFIGS, proces
 
 // Initialize Game State from IndexedDB
 const state = await storage.load();
-if (state.gold < 1000) {
-  state.gold = 1000;
-  storage.save(state);
-}
 
 // Request PWA Persistent Storage to prevent eviction
 storage.requestPersistentStorage();
